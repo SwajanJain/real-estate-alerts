@@ -5,6 +5,7 @@ export function variantWeight(value: MatchFeatures["variantType"]): number {
     case "exact": return 50;
     case "nickname": return 40;
     case "suffix_stripped": return 45;
+    case "dehyphenated": return 45; // "Mary Smith-Jones" on the deed vs "Mary Smith Jones" in the CRM: formatting only, like a dropped suffix
     case "middle_dropped": return 42;
     case "initial_variant": return 43;
     case "trust_extracted": return 35;
