@@ -488,3 +488,79 @@ export function applyRealEstateApiSaleDetail(property: PropertyRecord, detailPay
     saleDocumentNumber: getString(lastSale.documentNumber) || property.saleDocumentNumber,
   };
 }
+
+// ---------------------------------------------------------------------------
+// RealEstateAPI Property Detail records (PropertyDetailBulk, or one PropertyDetail
+// response). This is the production record: buyers and sellers come from the deed
+// (lastSale), never from the assessor's priorOwner. Shape notes, verified 9 Nov 2026:
+//   - propertyInfo.address.street is only the street NAME ("Chipmunk"); the full
+//     street line is propertyInfo.address.address ("2135 Chipmunk Ct").
+//   - ownerInfo.mailAddress.label is the full mailing line, unit included.
+//   - lastSale.saleDate carries a time part ("2026-05-22T00:00:00.000Z").
+//   - saleAmount 0 means the price was not disclosed.
+export function normalizeRealEstateApiDetail(payload: unknown): PropertyRecord {
+  const outer = asRecord(payload);
+  const root = asRecord(outer.data ?? payload); // a single PropertyDetail response wraps the record in `data`
+  const info = asRecord(root.propertyInfo);
+  const address = asRecord(info.address);
+  const owner = asRecord(root.ownerInfo);
+  const mail = asRecord(owner.mailAddress);
+  const sale = asRecord(root.lastSale);
+  const tax = asRecord(root.taxInfo);
+
+  const ownerNames = [owner.owner1FullName, owner.owner2FullName, owner.companyName].map(getString).filter(Boolean).join(", ");
+  const buyerRaw = getString(sale.buyerNames) || ownerNames;
+  const sellerRaw = getString(sale.sellerNames);
+  const rawPrice = getNumber(sale.saleAmount);
+  const documentType = getString(sale.documentType);
+  const documentTypeCode = getString(sale.documentTypeCode).toUpperCase();
+  const saleDate = normalizeIsoDate(getString(sale.saleDate));
+  const recordingDate = normalizeIsoDate(getString(sale.recordingDate));
+  const ownerOccupied = typeof root.ownerOccupied === "boolean" ? root.ownerOccupied
+    : typeof owner.ownerOccupied === "boolean" ? owner.ownerOccupied : undefined;
+  const useCode = info.propertyUseCode;
+
+  return {
+    source: "realestateapi",
+    sourcePropertyId: String(root.id ?? ""),
+    parcelId: getString(asRecord(root.lotInfo).apn) || undefined,
+    countyFips: getString(address.fips) || undefined,
+    county: getString(address.county) || undefined,
+    sourceCalendardate: undefined,
+    situsAddress: getString(address.address) || getString(address.label).split(",")[0].trim(),
+    situsCity: getString(address.city) || undefined,
+    situsState: getString(address.state) || undefined,
+    situsZip: getString(address.zip) || undefined,
+    ownerRaw: buyerRaw,
+    ownerRaw2: undefined,
+    ownerType: classifyOwnerEntity(buyerRaw.toUpperCase()),
+    parsedOwners: parseRealEstateApiParties(buyerRaw),
+    sellerRaw,
+    parsedSellers: parseRealEstateApiParties(sellerRaw),
+    ownerMailingAddress: firstString(mail.label, mail.address) || undefined,
+    ownerMailingCity: getString(mail.city) || undefined,
+    ownerMailingState: getString(mail.state) || undefined,
+    ownerMailingZip: getString(mail.zip) || undefined,
+    propertyType: firstString(info.propertyUse, root.propertyType) || undefined,
+    useCode: typeof useCode === "number" || typeof useCode === "string" ? String(useCode) : undefined,
+    assessedLand: getNumber(tax.assessedLandValue),
+    assessedImprovement: getNumber(tax.assessedImprovementValue),
+    assessedTotal: getNumber(tax.assessedValue),
+    estimatedValue: getNumber(root.estimatedValue),
+    lastSaleDate: recordingDate || saleDate,
+    lastSalePrice: rawPrice !== undefined && rawPrice > 0 ? rawPrice : undefined,
+    saleRecordDate: recordingDate,
+    saleTransactionDate: saleDate,
+    saleSearchDate: undefined,
+    saleDocumentNumber: getString(sale.documentNumber) || undefined,
+    saleTransactionType: documentType || undefined,
+    saleTransactionId: undefined,
+    quitClaimFlag: REAPI_QUITCLAIM_CODES.has(documentTypeCode) || /quit\s*claim/i.test(documentType) ? "true" : undefined,
+    isArmsLength: typeof sale.armsLength === "boolean" ? sale.armsLength : undefined,
+    mortgageAmount: getNumber(root.openMortgageBalance),
+    mortgageLender: undefined,
+    isOwnerOccupied: ownerOccupied,
+    isAbsenteeOwner: typeof root.absenteeOwner === "boolean" ? root.absenteeOwner : undefined,
+    raw: payload,
+  };
+}

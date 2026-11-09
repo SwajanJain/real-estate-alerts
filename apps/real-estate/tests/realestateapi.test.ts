@@ -13,6 +13,7 @@ import { RealEstateApiSource } from "../src/fetchers/transaction-sources";
 import { assertWithinCreditBudget, estimateUncachedRecords } from "../src/lib/credit-preflight";
 import {
   applyRealEstateApiSaleDetail,
+  normalizeRealEstateApiDetail,
   normalizeRealEstateApiProperty,
   parseRealEstateApiParties,
   parseRealEstateApiParty,
@@ -386,4 +387,65 @@ test("RealEstateApiClient fetches PropertyDetailBulk with numeric IDs and refuse
   await assert.rejects(client.fetchDetailBulk(Array.from({ length: 1001 }, (_, i) => String(i + 1))), /1,000/);
   assert.deepEqual(await client.fetchDetailBulk([]), []);
   assert.equal(calls.length, 1);
+});
+
+// Shape mirrors a live PropertyDetailBulk record (Nov 2026); names and addresses are synthetic.
+function detailRecord(overrides: Record<string, unknown> = {}, sale: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 90000001,
+    estimatedValue: 740000,
+    openMortgageBalance: 0,
+    ownerOccupied: true,
+    absenteeOwner: false,
+    propertyType: "SFR",
+    lastSale: {
+      documentNumber: "D-1001",
+      armsLength: true,
+      buyerNames: "Alan Quartermain, Beth Quartermain",
+      sellerNames: "Zelda K Moorcroft",
+      documentType: "Warranty Deed",
+      documentTypeCode: "DTWD",
+      recordingDate: "2026-05-04",
+      saleAmount: 725000,
+      saleDate: "2026-04-28T00:00:00.000Z",
+      ...sale,
+    },
+    ownerInfo: {
+      owner1FullName: "Alan Quartermain",
+      mailAddress: { address: "77 Elm St", city: "Brookfield", state: "WI", zip: "53045", label: "77 Elm St Unit 4, Brookfield, WI 53045", street: "Elm" },
+    },
+    propertyInfo: {
+      address: { address: "12 Oak Ridge Dr", city: "Brookfield", county: "Waukesha County", fips: "55133", state: "WI", zip: "53045", street: "Oak Ridge", label: "12 Oak Ridge Dr, Brookfield, WI 53045" },
+      propertyUse: "Single Family Residence",
+      propertyUseCode: 385,
+    },
+    taxInfo: { assessedValue: 610000, assessedLandValue: 150000, assessedImprovementValue: 460000 },
+    lotInfo: { apn: "111-22-333" },
+    saleHistory: [],
+    ...overrides,
+  };
+}
+
+test("normalizeRealEstateApiDetail reads deed buyers and sellers, the full street line and cut dates", () => {
+  const p = normalizeRealEstateApiDetail(detailRecord());
+  assert.equal(p.sourcePropertyId, "90000001");
+  assert.equal(p.situsAddress, "12 Oak Ridge Dr"); // address.address, not address.street ("Oak Ridge")
+  assert.equal(p.ownerMailingAddress, "77 Elm St Unit 4, Brookfield, WI 53045"); // full label, unit included
+  assert.deepEqual(p.parsedSellers.map((o) => o.normalized), ["zelda moorcroft"]);
+  assert.deepEqual(p.parsedOwners.map((o) => o.normalized), ["alan quartermain", "beth quartermain"]);
+  assert.equal(p.saleDocumentNumber, "D-1001");
+  assert.equal(p.saleTransactionDate, "2026-04-28");
+  assert.equal(p.saleRecordDate, "2026-05-04");
+  assert.equal(p.lastSalePrice, 725000);
+  assert.equal(p.assessedTotal, 610000);
+  assert.equal(p.countyFips, "55133");
+  assert.equal(p.isArmsLength, true);
+  assert.equal(p.quitClaimFlag, undefined);
+});
+
+test("normalizeRealEstateApiDetail: undisclosed price, quitclaim, owner fallback, single-detail wrapper", () => {
+  assert.equal(normalizeRealEstateApiDetail(detailRecord({}, { saleAmount: 0 })).lastSalePrice, undefined);
+  assert.equal(normalizeRealEstateApiDetail(detailRecord({}, { documentType: "Quit Claim Deed", documentTypeCode: "DTQC" })).quitClaimFlag, "true");
+  assert.deepEqual(normalizeRealEstateApiDetail(detailRecord({}, { buyerNames: null })).parsedOwners.map((o) => o.normalized), ["alan quartermain"]);
+  assert.equal(normalizeRealEstateApiDetail({ input: { id: 90000001 }, data: detailRecord() }).sourcePropertyId, "90000001");
 });
