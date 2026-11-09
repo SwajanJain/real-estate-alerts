@@ -45,6 +45,10 @@ export function buildCountyQuery(countyName: string, state: string): string {
   if (/\(city\)\s*$/i.test(name)) {
     return `${name.replace(/\s*\(city\)\s*$/i, "")}, ${state}`;
   }
+  // Louisiana parishes: "Caddo Parish" -> "Caddo Parish, LA" (never append " County")
+  if (/\bparish\s*$/i.test(name)) {
+    return `${name}, ${state}`;
+  }
   // SF-style: "City and County of San Francisco" → "San Francisco, CA"
   if (lower.startsWith("city and county of ")) {
     return `${name.replace(/^city and county of\s+/i, "")}, ${state}`;

@@ -80,7 +80,7 @@ export interface MatchScoreResult {
 }
 
 export interface PropertyRecord {
-  source: "attom" | "batchdata" | "county_fixture";
+  source: "attom" | "batchdata" | "realestateapi" | "county_fixture";
   sourcePropertyId: string;
   parcelId?: string;
   countyFips?: string;
@@ -175,6 +175,7 @@ export interface MonitoringStats {
   candidateMatches: number;
   acceptedMatches: number;
   reviewMatches: number;
+  detailLookups?: number;
 }
 
 export interface MonitoringManifest {
@@ -206,6 +207,7 @@ export interface MonitoringRunOptions {
   scanAll?: boolean;
   skipEnrichment?: boolean;
   skipPriorState?: boolean;
+  maxDetailLookups?: number;
 }
 
 export interface MonitorContext {

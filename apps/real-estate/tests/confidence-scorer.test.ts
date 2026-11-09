@@ -109,3 +109,13 @@ test("quality thresholds: high >= 85, medium >= 65, low >= 40, review < 40", () 
   assert.equal(scoreMatch(baseFeatures()).quality, "review");
   assert.equal(scoreMatch(baseFeatures({ variantType: "fuzzy", changeType: "no_change" })).quality, "review");
 });
+
+test("hyphen-dropped name match scores like a dropped suffix, not zero", () => {
+  const nameOnly = scoreMatch(baseFeatures({ variantType: "dehyphenated" }));
+  assert.equal(nameOnly.combinedScore, 45);
+  assert.equal(nameOnly.quality, "review"); // no address in common still never reaches the client
+  const street = scoreMatch(baseFeatures({ role: "seller", variantType: "dehyphenated", addressStatus: "situs_exact" }));
+  assert.equal(street.combinedScore, 90);
+  assert.equal(street.quality, "high");
+  assert.ok(street.reasons.includes("name:dehyphenated"));
+});

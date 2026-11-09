@@ -6,8 +6,13 @@ import { StateStore } from "@pm/core";
 import { AttomClient } from "../fetchers/attom";
 import { BatchDataClient } from "../fetchers/batchdata";
 import { CacheStore } from "../fetchers/cache-store";
+import { RealEstateApiClient } from "../fetchers/realestateapi";
+import { BatchDataSource, RealEstateApiSource } from "../fetchers/transaction-sources";
+import { assertWithinCreditBudget, estimateUncachedRecords } from "../lib/credit-preflight";
 import { CountyLookup, loadCountyList } from "../lib/county-list";
 import { parseArgs, readEnvFile } from "./util";
+
+const VENDORS = ["attom", "batchdata", "realestateapi"] as const;
 
 interface Fetcher {
   fetchCountyPage(args: { fips: string; startDate: string; endDate: string; page: number }): Promise<{
@@ -24,22 +29,11 @@ class AttomFetcherAdapter implements Fetcher {
   }
 }
 
-class BatchDataFetcherAdapter implements Fetcher {
-  constructor(private readonly client: BatchDataClient, private readonly lookup: CountyLookup) {}
-  fetchCountyPage(args: { fips: string; startDate: string; endDate: string; page: number }) {
-    const c = this.lookup.resolve(args.fips);
-    return this.client.fetchCountyPage({
-      countyName: c.countyName, state: c.state,
-      startDate: args.startDate, endDate: args.endDate, page: args.page,
-    });
-  }
-}
-
 export async function bulkFetchCli(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const vendor = (args.vendor ?? "attom").toLowerCase();
-  if (vendor !== "attom" && vendor !== "batchdata") {
-    throw new Error(`Unknown --vendor=${vendor}. Use attom or batchdata.`);
+  const vendor = (args.vendor ?? "attom").toLowerCase() as (typeof VENDORS)[number];
+  if (!VENDORS.includes(vendor)) {
+    throw new Error(`Unknown --vendor=${vendor}. Use ${VENDORS.join(", ")}.`);
   }
 
   let counties: string[];
@@ -52,11 +46,12 @@ export async function bulkFetchCli(argv: string[]): Promise<void> {
     throw new Error(
       "Usage:\n" +
       "  restate bulk-fetch --counties=11001,36061 --start=YYYY/MM/DD --end=YYYY/MM/DD [--delay=2000]\n" +
-      "  restate bulk-fetch --vendor=batchdata --county-list=/path/counties.csv --start=YYYY-MM-DD --end=YYYY-MM-DD",
+      "  restate bulk-fetch --vendor=batchdata --county-list=/path/counties.csv --start=YYYY-MM-DD --end=YYYY-MM-DD\n" +
+      "  restate bulk-fetch --vendor=realestateapi (--counties=55133 | --county-list=/path/counties.csv) --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500]",
     );
   }
   if (!args.start || !args.end) {
-    throw new Error("--start and --end (YYYY-MM-DD for batchdata, YYYY/MM/DD for attom) are required");
+    throw new Error("--start and --end (YYYY-MM-DD for batchdata/realestateapi, YYYY/MM/DD for attom) are required");
   }
 
   const cwd = process.cwd();
@@ -72,10 +67,25 @@ export async function bulkFetchCli(argv: string[]): Promise<void> {
     if (!apiKey) throw new Error("Missing BATCHDATA_API_KEY in environment or .env");
     if (!args["county-list"]) throw new Error("--vendor=batchdata requires --county-list (for FIPS→name lookup)");
     cacheStore = new CacheStore(stateStore, "batchdata");
-    fetcher = new BatchDataFetcherAdapter(
+    fetcher = new BatchDataSource(
       new BatchDataClient({ apiKey }),
       CountyLookup.fromCsv(args["county-list"]),
     );
+  } else if (vendor === "realestateapi") {
+    const apiKey = process.env.REALESTATEAPI_API_KEY ?? envValues.REALESTATEAPI_API_KEY ?? "";
+    if (!apiKey) throw new Error("Missing REALESTATEAPI_API_KEY in environment or .env");
+    cacheStore = new CacheStore(stateStore, "realestateapi");
+    const source = new RealEstateApiSource(new RealEstateApiClient({
+      apiKey,
+      armsLengthOnly: args["include-non-arms-length"] !== "true",
+    }));
+    const estimate = await estimateUncachedRecords({
+      source, cache: cacheStore, counties, startDate: args.start, endDate: args.end,
+    });
+    const maxCredits = Number(args["max-credits"] ?? "500");
+    process.stderr.write(`Credit preflight (count-only requests): ~${estimate?.total ?? 0} billable records; budget ${maxCredits}.\n`);
+    assertWithinCreditBudget(estimate, maxCredits);
+    fetcher = source;
   } else {
     const apiKeyRaw = process.env.ATTOM_API_KEY ?? envValues.ATTOM_API_KEY ?? "";
     const apiKeys = apiKeyRaw.split(",").map((k) => k.trim()).filter(Boolean);

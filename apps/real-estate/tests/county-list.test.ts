@@ -35,3 +35,22 @@ test("CountyLookup.resolve throws for an unknown FIPS rather than guessing", () 
   const lookup = CountyLookup.fromCsv(PILOT_CSV);
   assert.throws(() => lookup.resolve("99999"), /99999/);
 });
+
+const DATA_DIR = path.resolve(__dirname, "..", "..", "data");
+
+test("no county list uses Connecticut planning-region codes (RealEstateAPI returns no sales for them)", () => {
+  const regionCodes = /^091[1-9]0$/;
+  for (const file of fs.readdirSync(DATA_DIR).filter((f) => f.endsWith(".csv"))) {
+    const bad = loadCountyList(path.join(DATA_DIR, file)).filter((e) => regionCodes.test(e.fips));
+    assert.deepEqual(bad.map((e) => e.fips), [], `${file} uses Connecticut planning-region codes`);
+  }
+});
+
+test("us-counties.csv lists all 3,143 counties of the 50 states and DC, with Connecticut's legacy counties", () => {
+  const entries = loadCountyList(path.join(DATA_DIR, "us-counties.csv"));
+  assert.equal(entries.length, 3143);
+  assert.equal(new Set(entries.map((e) => e.fips)).size, 3143);
+  assert.deepEqual(entries.filter((e) => e.state === "CT").map((e) => e.fips),
+    ["09001", "09003", "09005", "09007", "09009", "09011", "09013", "09015"]);
+  assert.equal(new Set(entries.map((e) => e.state)).size, 51);
+});

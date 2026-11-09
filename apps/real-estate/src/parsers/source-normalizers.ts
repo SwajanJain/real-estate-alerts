@@ -1,6 +1,7 @@
 import { parsePersonName } from "@pm/core";
 
 import type { ParsedOwner, PropertyRecord } from "../core/types";
+import { variantWeight } from "../lib/confidence-scorer";
 import { classifyOwnerEntity } from "../lib/owner-entity-classifier";
 import { parseOwnerName } from "./owner-name-parser";
 import { normalizeAddress } from "./address-normalizer";
@@ -232,5 +233,258 @@ export function normalizeBatchDataProperty(payload: unknown): PropertyRecord {
     isOwnerOccupied,
     isAbsenteeOwner: isOwnerOccupied === undefined ? undefined : !isOwnerOccupied,
     raw: payload,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// RealEstateAPI (PropertySearch rows)
+//
+// Party strings are first-name-first and comma separated, e.g.
+//   "Samuel Steffl, Rayna Steffl"
+//   "Marion C Waterfall,  M C Waterfall Living Trust"
+// Older deeds sometimes use "Last,First" with no space ("Kozely,Peter"),
+// which parsePersonName already reads FEC-style.
+
+const REAPI_QUITCLAIM_CODES = new Set(["DTQC"]);
+
+function personFromParts(raw: string, extractedFrom: ParsedOwner["extractedFrom"]): ParsedOwner[] {
+  const parsed = parsePersonName(raw);
+  if (!parsed) return [];
+  return [{
+    raw,
+    normalized: parsed.normalized,
+    firstName: parsed.firstName,
+    middleName: parsed.middleName,
+    lastName: parsed.lastName,
+    suffix: parsed.suffix,
+    extractedFrom,
+  }];
+}
+
+// Split a party list into one string per party.
+export function splitRealEstateApiParties(raw: string): string[] {
+  const pieces = raw.split(/[;|]|,\s+/).map((piece) => piece.trim()).filter(Boolean);
+  const parties: string[] = [];
+  for (let i = 0; i < pieces.length; i++) {
+    const piece = pieces[i];
+    // "Smith, John" written with a space splits into a lone surname followed
+    // by the given name(s). A real one-word party is rare, so re-join it as
+    // "Smith,John" for the comma-aware parser.
+    if (!/\s/.test(piece) && !piece.includes(",") && i + 1 < pieces.length) {
+      parties.push(`${piece},${pieces[i + 1]}`);
+      i += 1;
+      continue;
+    }
+    parties.push(piece);
+  }
+  return parties;
+}
+
+// Words that start the trust-description tail of a first-name-first trust
+// name. Vendor strings are often abbreviated or truncated ("Liv Tr",
+// "Revocabl"), so match prefixes of the common forms.
+const TRUST_TAIL_TOKEN_RE = /^(?:revoc\w*|rev|irrev\w*|irrevoc\w*|liv|living|family|fam|joint|trust\w*|trst|tr|trs|tru|tst|ttee|ttees|dtd|dated|declaration|decl|u\/?a|utd|survivors?)$/i;
+const TRUST_MARKER_RE = /\b(?:trust\w*|trst|tr|trs|ttee|ttees|revoc\w*|irrevoc\w*)\b/i;
+
+// "John & Mary Smith" -> John Smith (surname borrowed), Mary Smith;
+// "Peter J And Jill R Machi" -> Peter J Machi (borrowed), Jill R Machi.
+// A leading piece that is only a given name, optionally with initials,
+// borrows the surname of the last piece. Borrowed names are inferred, so
+// they are scored as co-owners; names written out in full count as direct.
+interface JointName { name: string; borrowedSurname: boolean }
+
+function splitJointNames(names: string): JointName[] {
+  const pieces = names.split(/\s+(?:&|and)\s+/i).map((part) => part.trim()).filter(Boolean);
+  if (pieces.length < 2) return pieces.map((name) => ({ name, borrowedSurname: false }));
+  const lastTokens = pieces[pieces.length - 1].split(" ");
+  const surname = lastTokens.length > 1 ? lastTokens[lastTokens.length - 1] : "";
+  return pieces.map((piece, index) => {
+    if (index === pieces.length - 1 || !surname || piece.includes(",")) return { name: piece, borrowedSurname: false };
+    const tokens = piece.split(" ");
+    const onlyGivenName = tokens.length === 1 || tokens.slice(1).every((token) => /^[A-Za-z]\.?$/.test(token));
+    return onlyGivenName ? { name: `${piece} ${surname}`, borrowedSurname: true } : { name: piece, borrowedSurname: false };
+  });
+}
+
+function jointPeople(people: JointName[]): ParsedOwner[] {
+  return people.flatMap((person) => personFromParts(person.name, person.borrowedSurname ? "co_owner" : "direct"));
+}
+
+// First-name-first trust names: "Marion C Waterfall Living Trust",
+// "Paul E Lehner & Deann R Lehner Liv Tr", "The Robert And Lynelle Sukalich Revocabl".
+// The named grantors are returned as people (role "trustee") so they match
+// at full first+last strength; a surname-only "Smith Family Trust" yields
+// nothing because it cannot identify a person.
+export function parseRealEstateApiTrust(raw: string): ParsedOwner[] {
+  const tokens = raw.trim().replace(/\s+/g, " ").replace(/^the\s+/i, "").split(" ");
+  const tailStart = tokens.findIndex((token) => TRUST_TAIL_TOKEN_RE.test(token.replace(/[.,]/g, "")));
+  const names = (tailStart >= 0 ? tokens.slice(0, tailStart) : tokens).join(" ").trim();
+  if (!names) return [];
+  const people = splitJointNames(names);
+  if (people.length === 1 && people[0].name.split(" ").length < 2) return [];
+  return jointPeople(people).map((owner) => ({ ...owner, role: "trustee" as const }));
+}
+
+// Parse one first-name-first party. Entities yield nothing; trusts go through
+// the first-name-first trust parser; estates use the shared resolver;
+// "John & Mary Smith" becomes two people sharing the trailing surname.
+export function parseRealEstateApiParty(raw: string): ParsedOwner[] {
+  const trimmed = raw.trim().replace(/\s+/g, " ");
+  if (!trimmed) return [];
+  const type = classifyOwnerEntity(trimmed.toUpperCase());
+  if (type === "llc" || type === "corporation") return [];
+  if (type === "trust" || TRUST_MARKER_RE.test(trimmed)) return parseRealEstateApiTrust(trimmed);
+  if (type === "estate") return parseOwnerName(trimmed);
+
+  const joint = splitJointNames(trimmed);
+  if (joint.length > 1) return jointPeople(joint);
+  return personFromParts(trimmed, "direct");
+}
+
+// The name points the scorer will give this reading (the engine maps
+// extractedFrom to a variant type the same way).
+function ownerPoints(owner: ParsedOwner): number {
+  return variantWeight(
+    owner.extractedFrom === "trust_name" ? "trust_extracted" : owner.extractedFrom === "co_owner" ? "co_owner" : "exact",
+  );
+}
+
+// Two readings with the same normalized name are the same person unless they
+// disagree on a suffix (Sr vs Jr) or a middle initial (John A vs John B).
+function sameBearer(a: ParsedOwner, b: ParsedOwner): boolean {
+  const initial = (owner: ParsedOwner) => (owner.middleName ?? "").charAt(0);
+  const suffixOk = !a.suffix || !b.suffix || a.suffix === b.suffix;
+  const initialOk = !initial(a) || !initial(b) || initial(a) === initial(b);
+  return suffixOk && initialOk;
+}
+
+// One entry per normalized name, in first-seen order. A later reading
+// replaces the earlier one only when it is clearly the same person AND scores
+// strictly more, so a weak copy seen first cannot hide a full one:
+// "Robert And Susan Waite Revocable Trust, Robert J Waite Jr" keeps
+// "Robert J Waite Jr" (50 points), not the trust's borrowed-surname
+// "Robert Waite" (30). In every other case the first reading is kept.
+function mergeOwners(...lists: ParsedOwner[][]): ParsedOwner[] {
+  const owners: ParsedOwner[] = [];
+  const indexByName = new Map<string, number>();
+  for (const list of lists) {
+    for (const owner of list) {
+      const at = indexByName.get(owner.normalized);
+      if (at === undefined) {
+        indexByName.set(owner.normalized, owners.length);
+        owners.push(owner);
+      } else if (ownerPoints(owner) > ownerPoints(owners[at]) && sameBearer(owner, owners[at])) {
+        owners[at] = owner;
+      }
+    }
+  }
+  return owners;
+}
+
+export function parseRealEstateApiParties(raw: string): ParsedOwner[] {
+  return mergeOwners(...splitRealEstateApiParties(raw).map(parseRealEstateApiParty));
+}
+
+// Current-owner fields, used only when the deed's buyer string is missing.
+function ownerFieldsAsPartyString(root: AnyRecord): string {
+  const people = [1, 2]
+    .map((n) => [getString(root[`owner${n}FirstName`]), getString(root[`owner${n}LastName`])].filter(Boolean).join(" "))
+    .filter(Boolean);
+  const company = getString(root.companyName);
+  return [...people, company].filter(Boolean).join(", ");
+}
+
+export function normalizeRealEstateApiProperty(payload: unknown): PropertyRecord {
+  const root = asRecord(payload);
+  const address = asRecord(root.address);
+  const mail = asRecord(root.mailAddress);
+
+  const buyerRaw = getString(root.lastSaleBuyerNames) || ownerFieldsAsPartyString(root);
+  const sellerRaw = getString(root.priorOwner);
+  const parsedOwners = parseRealEstateApiParties(buyerRaw);
+  const parsedSellers = parseRealEstateApiParties(sellerRaw);
+
+  const saleDate = normalizeIsoDate(getString(root.lastSaleDate));
+  const recordingDate = normalizeIsoDate(getString(root.recordingDate));
+  // Non-disclosure states report the price as 0. Treat that as unknown, not
+  // as a nominal-price transfer, or every TX/UT/etc. sale would be dropped.
+  const rawPrice = getNumber(root.lastSaleAmount);
+  const salePrice = rawPrice !== undefined && rawPrice > 0 ? rawPrice : undefined;
+  const documentType = getString(root.documentType);
+  const documentTypeCode = getString(root.documentTypeCode).toUpperCase();
+  const ownerOccupied = typeof root.ownerOccupied === "boolean" ? root.ownerOccupied : undefined;
+  const absentee = typeof root.absenteeOwner === "boolean" ? root.absenteeOwner : undefined;
+  const useCode = root.propertyUseCode;
+
+  return {
+    source: "realestateapi",
+    sourcePropertyId: String(root.id ?? root.propertyId ?? ""),
+    parcelId: getString(root.apn) || undefined,
+    countyFips: getString(address.fips) || undefined,
+    county: getString(address.county) || undefined,
+    sourceCalendardate: undefined,
+    situsAddress: firstString(address.street, address.address),
+    situsCity: getString(address.city) || undefined,
+    situsState: getString(address.state) || undefined,
+    situsZip: getString(address.zip) || undefined,
+    ownerRaw: buyerRaw,
+    ownerRaw2: undefined,
+    ownerType: classifyOwnerEntity(buyerRaw.toUpperCase()),
+    parsedOwners,
+    sellerRaw,
+    parsedSellers,
+    ownerMailingAddress: firstString(mail.address, mail.street) || undefined,
+    ownerMailingCity: getString(mail.city) || undefined,
+    ownerMailingState: getString(mail.state) || undefined,
+    ownerMailingZip: getString(mail.zip) || undefined,
+    propertyType: firstString(root.propertyUse, root.propertyType) || undefined,
+    useCode: typeof useCode === "number" || typeof useCode === "string" ? String(useCode) : undefined,
+    assessedLand: getNumber(root.assessedLandValue),
+    assessedImprovement: getNumber(root.assessedImprovementValue),
+    assessedTotal: getNumber(root.assessedValue),
+    estimatedValue: getNumber(root.estimatedValue),
+    lastSaleDate: recordingDate || saleDate,
+    lastSalePrice: salePrice,
+    saleRecordDate: recordingDate,
+    saleTransactionDate: saleDate,
+    saleSearchDate: undefined,
+    saleDocumentNumber: undefined,
+    saleTransactionType: documentType || undefined,
+    saleTransactionId: undefined,
+    quitClaimFlag: REAPI_QUITCLAIM_CODES.has(documentTypeCode) || /quit\s*claim/i.test(documentType) ? "true" : undefined,
+    isArmsLength: typeof root.lastSaleArmsLength === "boolean" ? root.lastSaleArmsLength : undefined,
+    mortgageAmount: getNumber(root.openMortgageBalance),
+    mortgageLender: getString(root.lenderName) || undefined,
+    isOwnerOccupied: ownerOccupied,
+    isAbsenteeOwner: absentee,
+    raw: payload,
+  };
+}
+
+// PropertySearch's priorOwner is the assessor's previous owner, which can be
+// empty or name later heirs (e.g. after a transfer-on-death deed). The deed's
+// grantor list lives in PropertyDetail.lastSale.sellerNames. We keep the union
+// of both lists, because each side has errors the other lacks (a deed typo like
+// "Rurie" for "Ruric", or a priorOwner naming heirs instead of grantors).
+// Only applied when the detail's sale is the same sale as the search row's.
+// A person on both lists keeps the stronger reading (see mergeOwners).
+function unionOwners(a: ParsedOwner[], b: ParsedOwner[]): ParsedOwner[] {
+  return mergeOwners(a, b);
+}
+
+export function applyRealEstateApiSaleDetail(property: PropertyRecord, detailPayload: unknown): PropertyRecord {
+  const detail = asRecord(asRecord(detailPayload).data ?? detailPayload);
+  const lastSale = asRecord(detail.lastSale);
+  const detailSaleDate = normalizeIsoDate(getString(lastSale.saleDate));
+  if (detailSaleDate && property.saleTransactionDate && detailSaleDate !== property.saleTransactionDate) return property;
+  const sellerRaw = getString(lastSale.sellerNames);
+  const buyerRaw = getString(lastSale.buyerNames);
+  return {
+    ...property,
+    sellerRaw: [sellerRaw, property.sellerRaw].filter(Boolean).join(" | "),
+    parsedSellers: unionOwners(parseRealEstateApiParties(sellerRaw), property.parsedSellers),
+    ownerRaw: [buyerRaw, property.ownerRaw].filter((v, i, all) => v && all.indexOf(v) === i).join(" | "),
+    parsedOwners: unionOwners(parseRealEstateApiParties(buyerRaw), property.parsedOwners),
+    saleDocumentNumber: getString(lastSale.documentNumber) || property.saleDocumentNumber,
   };
 }

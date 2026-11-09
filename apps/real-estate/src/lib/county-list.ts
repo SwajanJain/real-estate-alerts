@@ -53,6 +53,10 @@ export class CountyLookup {
     return entry;
   }
 
+  find(fips: string): CountyEntry | undefined {
+    return this.byFips.get(fips);
+  }
+
   all(): CountyEntry[] {
     return Array.from(this.byFips.values());
   }

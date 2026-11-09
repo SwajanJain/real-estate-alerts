@@ -14,7 +14,14 @@ rank,county,state,fips
 13,Fairfax,VA,51059
 14,District of Columbia,DC,11001
 15,Hudson,NJ,34017
-16,Western Connecticut,CT,09190
+,Fairfield,CT,09001
+,Hartford,CT,09003
+,Litchfield,CT,09005
+,Middlesex,CT,09007
+,New Haven,CT,09009
+,New London,CT,09011
+,Tolland,CT,09013
+,Windham,CT,09015
 17,Westchester,NY,36119
 18,San Diego,CA,06073
 19,Queens,NY,36081
@@ -36,7 +43,6 @@ rank,county,state,fips
 35,Palm Beach,FL,12099
 36,Westmoreland,PA,42129
 37,Arlington,VA,51013
-38,Capitol Region,CT,09110
 39,Miami-Dade,FL,12086
 40,Delaware,PA,42045
 41,Mecklenburg,NC,37119
@@ -70,9 +76,7 @@ rank,county,state,fips
 69,Franklin,OH,39049
 70,Bucks,PA,42017
 71,Collin,TX,48085
-72,Northwest Hills,CT,09160
 73,Snohomish,WA,53061
-74,South Central Regional,CT,09170
 75,Washington,OR,41067
 76,Williamson,TX,48491
 77,Baltimore,MD,24005
@@ -89,7 +93,6 @@ rank,county,state,fips
 88,St. Louis,MO,29189
 89,DeKalb,GA,13089
 90,Bronx,NY,36005
-91,Connecticut Metropolitan,CT,09120
 92,Charleston,SC,45019
 93,Cumberland,ME,23005
 94,Collier,FL,12021
@@ -102,12 +105,9 @@ rank,county,state,fips
 101,Santa Barbara,CA,06083
 102,Chittenden,VT,50007
 103,Albany,NY,36001
-104,Lower Connecticut River Valley,CT,09130
 105,Santa Fe,NM,35049
 106,Hampshire,MA,25015
-107,Naugatuck Valley,CT,09140
 108,Berkshire,MA,25003
-109,Southeastern Connecticut,CT,09180
 110,Grafton,NH,33009
 111,Hampden,MA,25013
 112,Indian River,FL,12061
