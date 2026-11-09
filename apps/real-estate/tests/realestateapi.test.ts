@@ -9,10 +9,11 @@ import { createLogger, StateStore } from "@pm/core";
 import { TransactionMonitoringEngine } from "../src/core/TransactionMonitoringEngine";
 import { CacheStore } from "../src/fetchers/cache-store";
 import { RealEstateApiClient } from "../src/fetchers/realestateapi";
-import { RealEstateApiSource } from "../src/fetchers/transaction-sources";
+import { createRealEstateApiSource, RealEstateApiSource } from "../src/fetchers/transaction-sources";
 import { assertWithinCreditBudget, estimateUncachedRecords } from "../src/lib/credit-preflight";
 import {
   applyRealEstateApiSaleDetail,
+  normalizeRealEstateApiDetail,
   normalizeRealEstateApiProperty,
   parseRealEstateApiParties,
   parseRealEstateApiParty,
@@ -341,4 +342,197 @@ test("engine looks up deed detail only for sales at a prospect address, and cach
   assert.equal(rerun.counts.apiCalls, 0);
   assert.equal(detailIds.length, 1);
   assert.equal(searchCalls.length, 1);
+});
+
+// Records the URL and body of every call; replies with the next canned response.
+function scriptedFetch(replies: unknown[], calls: Array<{ url: string; body: Record<string, unknown> }>): typeof fetch {
+  return (async (url: string, init?: RequestInit) => {
+    calls.push({ url: String(url), body: JSON.parse(String(init?.body)) as Record<string, unknown> });
+    const reply = replies[Math.min(calls.length - 1, replies.length - 1)];
+    return new Response(JSON.stringify(reply), { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as unknown as typeof fetch;
+}
+
+test("RealEstateApiClient lists IDs by recording date with ids_only, paging past a full page", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const client = new RealEstateApiClient({
+    apiKey: "test",
+    dateField: "recording",
+    fetchImpl: scriptedFetch([{ resultCount: 3, data: [11, 12] }, { resultCount: 3, data: [13] }], calls),
+  });
+  const ids = await client.fetchCountyIds({ fips: "55133", startDate: "2026-05-01", endDate: "2026-05-31" });
+  assert.deepEqual(ids, ["11", "12", "13"]);
+  assert.match(calls[0].url, /\/PropertySearch$/);
+  assert.deepEqual(calls[0].body, {
+    fips: "55133", recording_date_min: "2026-05-01", recording_date_max: "2026-05-31",
+    last_sale_arms_length: true, ids_only: true, size: 10000,
+  });
+  assert.equal(calls[1].body.resultIndex, 2);
+});
+
+test("RealEstateApiClient reads an empty ids_only window (200 with inner 404) as no IDs", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const client = new RealEstateApiClient({ apiKey: "test", dateField: "recording", fetchImpl: scriptedFetch([{ statusCode: 404, data: [] }], calls) });
+  assert.deepEqual(await client.fetchCountyIds({ fips: "42003", startDate: "2026-09-01", endDate: "2026-09-30" }), []);
+  assert.equal(calls.length, 1);
+});
+
+test("RealEstateApiClient fetches PropertyDetailBulk with numeric IDs and refuses more than 1,000", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const client = new RealEstateApiClient({ apiKey: "test", fetchImpl: scriptedFetch([{ statusCode: 200, data: [{ id: 2 }, { id: 1 }] }], calls) });
+  const records = await client.fetchDetailBulk(["1", "2"]);
+  assert.equal(records.length, 2);
+  assert.match(calls[0].url, /\/PropertyDetailBulk$/);
+  assert.deepEqual(calls[0].body, { ids: [1, 2] });
+  await assert.rejects(client.fetchDetailBulk(Array.from({ length: 1001 }, (_, i) => String(i + 1))), /1,000/);
+  assert.deepEqual(await client.fetchDetailBulk([]), []);
+  assert.equal(calls.length, 1);
+});
+
+// Shape mirrors a live PropertyDetailBulk record (Nov 2026); names and addresses are synthetic.
+function detailRecord(overrides: Record<string, unknown> = {}, sale: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 90000001,
+    estimatedValue: 740000,
+    openMortgageBalance: 0,
+    ownerOccupied: true,
+    absenteeOwner: false,
+    propertyType: "SFR",
+    lastSale: {
+      documentNumber: "D-1001",
+      armsLength: true,
+      buyerNames: "Alan Quartermain, Beth Quartermain",
+      sellerNames: "Zelda K Moorcroft",
+      documentType: "Warranty Deed",
+      documentTypeCode: "DTWD",
+      recordingDate: "2026-05-04",
+      saleAmount: 725000,
+      saleDate: "2026-04-28T00:00:00.000Z",
+      ...sale,
+    },
+    ownerInfo: {
+      owner1FullName: "Alan Quartermain",
+      mailAddress: { address: "77 Elm St", city: "Brookfield", state: "WI", zip: "53045", label: "77 Elm St Unit 4, Brookfield, WI 53045", street: "Elm" },
+    },
+    propertyInfo: {
+      address: { address: "12 Oak Ridge Dr", city: "Brookfield", county: "Waukesha County", fips: "55133", state: "WI", zip: "53045", street: "Oak Ridge", label: "12 Oak Ridge Dr, Brookfield, WI 53045" },
+      propertyUse: "Single Family Residence",
+      propertyUseCode: 385,
+    },
+    taxInfo: { assessedValue: 610000, assessedLandValue: 150000, assessedImprovementValue: 460000 },
+    lotInfo: { apn: "111-22-333" },
+    saleHistory: [],
+    ...overrides,
+  };
+}
+
+test("normalizeRealEstateApiDetail reads deed buyers and sellers, the full street line and cut dates", () => {
+  const p = normalizeRealEstateApiDetail(detailRecord());
+  assert.equal(p.sourcePropertyId, "90000001");
+  assert.equal(p.situsAddress, "12 Oak Ridge Dr"); // address.address, not address.street ("Oak Ridge")
+  assert.equal(p.ownerMailingAddress, "77 Elm St Unit 4, Brookfield, WI 53045"); // full label, unit included
+  assert.deepEqual(p.parsedSellers.map((o) => o.normalized), ["zelda moorcroft"]);
+  assert.deepEqual(p.parsedOwners.map((o) => o.normalized), ["alan quartermain", "beth quartermain"]);
+  assert.equal(p.saleDocumentNumber, "D-1001");
+  assert.equal(p.saleTransactionDate, "2026-04-28");
+  assert.equal(p.saleRecordDate, "2026-05-04");
+  assert.equal(p.lastSalePrice, 725000);
+  assert.equal(p.assessedTotal, 610000);
+  assert.equal(p.countyFips, "55133");
+  assert.equal(p.isArmsLength, true);
+  assert.equal(p.quitClaimFlag, undefined);
+});
+
+test("normalizeRealEstateApiDetail: undisclosed price, quitclaim, owner fallback, single-detail wrapper", () => {
+  assert.equal(normalizeRealEstateApiDetail(detailRecord({}, { saleAmount: 0 })).lastSalePrice, undefined);
+  assert.equal(normalizeRealEstateApiDetail(detailRecord({}, { documentType: "Quit Claim Deed", documentTypeCode: "DTQC" })).quitClaimFlag, "true");
+  assert.deepEqual(normalizeRealEstateApiDetail(detailRecord({}, { buyerNames: null })).parsedOwners.map((o) => o.normalized), ["alan quartermain"]);
+  assert.equal(normalizeRealEstateApiDetail({ input: { id: 90000001 }, data: detailRecord() }).sourcePropertyId, "90000001");
+});
+
+// Serves ids_only, count and PropertyDetailBulk calls from a fixed record set.
+function bulkApi(records: Array<Record<string, unknown>>, calls: Array<{ url: string; body: Record<string, unknown> }>): typeof fetch {
+  return (async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    calls.push({ url: String(url), body });
+    const reply = (data: unknown) => new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+    if (String(url).endsWith("/PropertyDetailBulk")) {
+      const wanted = new Set((body.ids as number[]).map(String));
+      return reply({ statusCode: 200, data: records.filter((r) => wanted.has(String(r.id))).reverse() }); // vendor order differs
+    }
+    if (body.count) return reply({ resultCount: records.length, recordCount: 0, data: [] });
+    return reply({ resultCount: records.length, recordCount: records.length, data: records.map((r) => r.id) });
+  }) as unknown as typeof fetch;
+}
+
+test("RealEstateApiBulkSource pages 1,000 IDs at a time, restores ID order, and lists IDs once", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "restate-reapi-bulk-"));
+  const stateStore = new StateStore(path.join(tempDir, ".restate"));
+  stateStore.ensure();
+  const cache = new CacheStore(stateStore, "realestateapi");
+  const records = Array.from({ length: 2500 }, (_, i) => ({ id: 1000 + i })).filter((r) => r.id !== 1500); // one ID has no record
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const idsOnly = (async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    if (!String(url).endsWith("/PropertyDetailBulk")) {
+      calls.push({ url: String(url), body });
+      return new Response(JSON.stringify({ resultCount: 2500, data: Array.from({ length: 2500 }, (_, i) => 1000 + i) }), { status: 200 });
+    }
+    return bulkApi(records, calls)(url, init);
+  }) as unknown as typeof fetch;
+  const source = createRealEstateApiSource({ apiKey: "test", fetchImpl: idsOnly }, "bulk", cache);
+  const window = { fips: "55133", startDate: "2026-05-01", endDate: "2026-05-31" };
+
+  const first = await source.fetchCountyPage({ ...window, page: 1 });
+  assert.equal(source.windowDate, "recording");
+  assert.equal(first.pages, 3);
+  assert.equal(first.properties.length, 999); // short page, but not the last one
+  assert.deepEqual(first.properties.slice(0, 2).map((r) => (r as { id: number }).id), [1000, 1001]);
+  const last = await source.fetchCountyPage({ ...window, page: 3 });
+  assert.equal(last.properties.length, 500);
+  const searches = calls.filter((c) => c.url.endsWith("/PropertySearch"));
+  assert.equal(searches.length, 1); // the ID list is saved and reused
+  assert.equal(searches[0].body.recording_date_min, "2026-05-01");
+  assert.ok(calls.filter((c) => c.url.endsWith("/PropertyDetailBulk")).every((c) => (c.body.ids as number[]).length <= 1000));
+});
+
+test("Bulk path matches a deed seller in the month the deed was recorded, counts credits, and reruns from cache", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "restate-reapi-bulk-engine-"));
+  const stateStore = new StateStore(path.join(tempDir, ".restate"));
+  stateStore.ensure();
+  const prospectsPath = path.join(tempDir, "prospects.csv");
+  fs.writeFileSync(prospectsPath, ["prospect_id,name,address,city,state,zip", "p1,Zelda Moorcroft,12 Oak Ridge Drive,Brookfield,WI,53045"].join("\n"), "utf8");
+
+  const records = [
+    detailRecord(), // closed 28 April, recorded 4 May; deed seller Zelda K Moorcroft
+    detailRecord(
+      { id: 90000002, propertyInfo: { address: { address: "99 Elsewhere Ln", city: "Waukesha", fips: "55133", state: "WI", zip: "53188" } } },
+      { sellerNames: "Someone Else", saleDate: "2026-05-02T00:00:00.000Z", recordingDate: "2026-05-10" },
+    ),
+  ];
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const cache = new CacheStore(stateStore, "realestateapi");
+  const engine = new TransactionMonitoringEngine({
+    source: createRealEstateApiSource({ apiKey: "test", fetchImpl: bulkApi(records, calls) }, "bulk", cache),
+    cache,
+    logger: createLogger(false),
+  });
+  const runOptions = {
+    runId: "reapi-bulk", logger: createLogger(false), prospectsPath, counties: ["55133"],
+    startDate: "2026-05-01", endDate: "2026-05-31", outputDir: path.join(tempDir, "runs"),
+  };
+
+  const manifest = await engine.execute(runOptions);
+  assert.equal(manifest.counts.acceptedMatches, 1);
+  assert.equal(manifest.counts.billableRecords, 2);
+  assert.equal(manifest.counts.detailLookups, 0);
+  const csv = fs.readFileSync(manifest.outputs.clientCsv, "utf8");
+  assert.match(csv, /Zelda Moorcroft,Zelda K Moorcroft,seller/);
+  assert.match(csv, /high,street-verified/);
+
+  const before = calls.length;
+  const rerun = await engine.execute({ ...runOptions, runId: "reapi-bulk-2" });
+  assert.equal(rerun.counts.apiCalls, 0);
+  assert.equal(rerun.counts.billableRecords, 0);
+  assert.equal(calls.length, before);
 });

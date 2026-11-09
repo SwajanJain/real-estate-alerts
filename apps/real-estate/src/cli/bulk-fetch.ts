@@ -6,8 +6,8 @@ import { StateStore } from "@pm/core";
 import { AttomClient } from "../fetchers/attom";
 import { BatchDataClient } from "../fetchers/batchdata";
 import { CacheStore } from "../fetchers/cache-store";
-import { RealEstateApiClient } from "../fetchers/realestateapi";
-import { BatchDataSource, RealEstateApiSource } from "../fetchers/transaction-sources";
+import { BatchDataSource, createRealEstateApiSource } from "../fetchers/transaction-sources";
+import { parseFetchMode } from "./monitor";
 import { assertWithinCreditBudget, estimateUncachedRecords } from "../lib/credit-preflight";
 import { CountyLookup, loadCountyList } from "../lib/county-list";
 import { parseArgs, readEnvFile } from "./util";
@@ -31,7 +31,7 @@ class AttomFetcherAdapter implements Fetcher {
 
 export async function bulkFetchCli(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const vendor = (args.vendor ?? "attom").toLowerCase() as (typeof VENDORS)[number];
+  const vendor = (args.vendor ?? "realestateapi").toLowerCase() as (typeof VENDORS)[number];
   if (!VENDORS.includes(vendor)) {
     throw new Error(`Unknown --vendor=${vendor}. Use ${VENDORS.join(", ")}.`);
   }
@@ -45,9 +45,9 @@ export async function bulkFetchCli(argv: string[]): Promise<void> {
   } else {
     throw new Error(
       "Usage:\n" +
-      "  restate bulk-fetch --counties=11001,36061 --start=YYYY/MM/DD --end=YYYY/MM/DD [--delay=2000]\n" +
+      "  restate bulk-fetch (--counties=55133 | --county-list=/path/counties.csv) --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500] [--fetch=bulk|search]\n" +
       "  restate bulk-fetch --vendor=batchdata --county-list=/path/counties.csv --start=YYYY-MM-DD --end=YYYY-MM-DD\n" +
-      "  restate bulk-fetch --vendor=realestateapi (--counties=55133 | --county-list=/path/counties.csv) --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500]",
+      "  restate bulk-fetch --vendor=attom --counties=11001,36061 --start=YYYY/MM/DD --end=YYYY/MM/DD [--delay=2000]",
     );
   }
   if (!args.start || !args.end) {
@@ -75,10 +75,11 @@ export async function bulkFetchCli(argv: string[]): Promise<void> {
     const apiKey = process.env.REALESTATEAPI_API_KEY ?? envValues.REALESTATEAPI_API_KEY ?? "";
     if (!apiKey) throw new Error("Missing REALESTATEAPI_API_KEY in environment or .env");
     cacheStore = new CacheStore(stateStore, "realestateapi");
-    const source = new RealEstateApiSource(new RealEstateApiClient({
-      apiKey,
-      armsLengthOnly: args["include-non-arms-length"] !== "true",
-    }));
+    const source = createRealEstateApiSource(
+      { apiKey, armsLengthOnly: args["include-non-arms-length"] !== "true" },
+      parseFetchMode(args.fetch),
+      cacheStore,
+    );
     const estimate = await estimateUncachedRecords({
       source, cache: cacheStore, counties, startDate: args.start, endDate: args.end,
     });
@@ -165,8 +166,10 @@ export async function bulkFetchCli(argv: string[]): Promise<void> {
         cacheStore.markPageComplete(fips, start, end, page, countyTotalPages);
         totalPages++;
 
-        const done = result.properties.length < result.pageSize
-          || (typeof countyTotalPages === "number" && page >= countyTotalPages);
+        // Prefer the known page count: a Bulk page can come back short without being the last.
+        const done = typeof countyTotalPages === "number"
+          ? page >= countyTotalPages
+          : result.properties.length < result.pageSize;
 
         if (done) break;
         if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));

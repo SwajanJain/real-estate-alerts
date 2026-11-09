@@ -39,6 +39,20 @@ export class CacheStore {
     this.stateStore.writeJson(this.pagePath(fips, startDate, endDate, page), value);
   }
 
+  // The property IDs listed for a county and window (Bulk path), saved so a
+  // resumed or partly cached scan fetches the same 1,000-ID chunks.
+  idListPath(fips: string, startDate: string, endDate: string): string {
+    return path.join(this.stateStore.paths.raw, this.vendor, fips, `${startDate}_${endDate}`, "ids.json");
+  }
+
+  readIdList(fips: string, startDate: string, endDate: string): string[] | null {
+    return this.stateStore.readJson<string[]>(this.idListPath(fips, startDate, endDate));
+  }
+
+  writeIdList(fips: string, startDate: string, endDate: string, ids: string[]): void {
+    this.stateStore.writeJson(this.idListPath(fips, startDate, endDate), ids);
+  }
+
   readScanManifest(fips: string, startDate: string, endDate: string): ScanManifest | null {
     return this.stateStore.readJson<ScanManifest>(this.scanManifestPath(fips, startDate, endDate));
   }
