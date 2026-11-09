@@ -35,3 +35,13 @@ test("CountyLookup.resolve throws for an unknown FIPS rather than guessing", () 
   const lookup = CountyLookup.fromCsv(PILOT_CSV);
   assert.throws(() => lookup.resolve("99999"), /99999/);
 });
+
+const DATA_DIR = path.resolve(__dirname, "..", "..", "data");
+
+test("no county list uses Connecticut planning-region codes (RealEstateAPI returns no sales for them)", () => {
+  const regionCodes = /^091[1-9]0$/;
+  for (const file of fs.readdirSync(DATA_DIR).filter((f) => f.endsWith(".csv"))) {
+    const bad = loadCountyList(path.join(DATA_DIR, file)).filter((e) => regionCodes.test(e.fips));
+    assert.deepEqual(bad.map((e) => e.fips), [], `${file} uses Connecticut planning-region codes`);
+  }
+});

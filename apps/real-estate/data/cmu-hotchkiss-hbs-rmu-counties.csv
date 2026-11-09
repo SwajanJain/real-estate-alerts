@@ -14,7 +14,14 @@ rank,county,state,fips
 13,Fairfax,VA,51059
 14,District of Columbia,DC,11001
 15,Hudson,NJ,34017
-16,Western Connecticut,CT,09190
+,Fairfield,CT,09001
+,Hartford,CT,09003
+,Litchfield,CT,09005
+,Middlesex,CT,09007
+,New Haven,CT,09009
+,New London,CT,09011
+,Tolland,CT,09013
+,Windham,CT,09015
 17,Westchester,NY,36119
 18,Westmoreland,PA,42129
 19,San Diego,CA,06073
@@ -40,7 +47,6 @@ rank,county,state,fips
 39,Palm Beach,FL,12099
 40,Cuyahoga,OH,39035
 41,Arlington,VA,51013
-42,Capitol Region,CT,09110
 43,Miami-Dade,FL,12086
 44,Middlesex,NJ,34023
 45,Delaware,PA,42045
@@ -58,11 +64,9 @@ rank,county,state,fips
 57,Denver,CO,08031
 58,Collin,TX,48085
 59,Essex,MA,25009
-60,Northwest Hills,CT,09160
 61,Boulder,CO,08013
 62,Hennepin,MN,27053
 63,Snohomish,WA,53061
-64,South Central Regional,CT,09170
 65,Union,NJ,34039
 66,Anne Arundel,MD,24003
 67,Monmouth,NJ,34025
@@ -101,7 +105,6 @@ rank,county,state,fips
 100,DeKalb,GA,13089
 101,Bronx,NY,36005
 102,Salt Lake,UT,49035
-103,Connecticut Metropolitan,CT,09120
 104,Bernalillo,NM,35001
 105,Lancaster,PA,42071
 106,Charleston,SC,45019
@@ -142,7 +145,6 @@ rank,county,state,fips
 141,Sonoma,CA,06097
 142,Brevard,FL,12009
 143,Manatee,FL,12081
-144,Lower Connecticut River Valley,CT,09130
 145,Ramsey,MN,27123
 146,Santa Cruz,CA,06087
 147,Dauphin,PA,42043
@@ -152,7 +154,6 @@ rank,county,state,fips
 151,Montgomery,TX,48339
 152,Erie,PA,42049
 153,Montgomery,OH,39113
-154,Naugatuck Valley,CT,09140
 155,Berkshire,MA,25003
 156,Shelby,TN,47157
 157,Greenville,SC,45045
@@ -178,7 +179,6 @@ rank,county,state,fips
 177,Washoe,NV,32031
 178,Saratoga,NY,36091
 179,Champaign,IL,17019
-180,Southeastern Connecticut,CT,09180
 181,Chesterfield,VA,51041
 182,Forsyth,NC,37067
 183,Kitsap,WA,53035
