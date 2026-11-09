@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+.restate/
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+# client prospect files contain personal data: never commit them
+/data/
+*prospects*.csv

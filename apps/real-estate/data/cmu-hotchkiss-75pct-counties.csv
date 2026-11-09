@@ -1,0 +1,118 @@
+rank,county,state,fips
+1,Allegheny,PA,42003
+2,Santa Clara,CA,06085
+3,New York,NY,36061
+4,King,WA,53033
+5,Los Angeles,CA,06037
+6,Middlesex,MA,25017
+7,City and County of San Francisco,CA,06075
+8,Alameda,CA,06001
+9,San Mateo,CA,06081
+10,Kings,NY,36047
+11,Cook,IL,17031
+12,Montgomery,MD,24031
+13,Fairfax,VA,51059
+14,District of Columbia,DC,11001
+15,Hudson,NJ,34017
+16,Western Connecticut,CT,09190
+17,Westchester,NY,36119
+18,San Diego,CA,06073
+19,Queens,NY,36081
+20,Harris,TX,48201
+21,Travis,TX,48453
+22,Orange,CA,06059
+23,Bergen,NJ,34003
+24,Montgomery,PA,42091
+25,Nassau,NY,36059
+26,Philadelphia,PA,42101
+27,Maricopa,AZ,04013
+28,Essex,NJ,34013
+29,Norfolk,MA,25021
+30,Contra Costa,CA,06013
+31,Wake,NC,37183
+32,Fulton,GA,13121
+33,Suffolk,MA,25025
+34,Dallas,TX,48113
+35,Palm Beach,FL,12099
+36,Westmoreland,PA,42129
+37,Arlington,VA,51013
+38,Capitol Region,CT,09110
+39,Miami-Dade,FL,12086
+40,Delaware,PA,42045
+41,Mecklenburg,NC,37119
+42,Mercer,NJ,34021
+43,Chester,PA,42029
+44,Suffolk,NY,36103
+45,Multnomah,OR,41051
+46,Morris,NJ,34027
+47,Somerset,NJ,34035
+48,Denver,CO,08031
+49,Essex,MA,25009
+50,Butler,PA,42019
+51,Boulder,CO,08013
+52,Hennepin,MN,27053
+53,Washington,PA,42125
+54,Union,NJ,34039
+55,Anne Arundel,MD,24003
+56,Monmouth,NJ,34025
+57,Broward,FL,12011
+58,Marin,CA,06041
+59,Monroe,NY,36055
+60,Baltimore (city),MD,24510
+61,Oakland,MI,26125
+62,Lake,IL,17097
+63,Cuyahoga,OH,39035
+64,Worcester,MA,25027
+65,Wayne,MI,26163
+66,Middlesex,NJ,34023
+67,Howard,MD,24027
+68,Loudoun,VA,51107
+69,Franklin,OH,39049
+70,Bucks,PA,42017
+71,Collin,TX,48085
+72,Northwest Hills,CT,09160
+73,Snohomish,WA,53061
+74,South Central Regional,CT,09170
+75,Washington,OR,41067
+76,Williamson,TX,48491
+77,Baltimore,MD,24005
+78,DuPage,IL,17043
+79,Beaver,PA,42007
+80,Washtenaw,MI,26161
+81,Clark,NV,32003
+82,Orange,FL,12095
+83,Hamilton,OH,39061
+84,Dutchess,NY,36027
+85,Dane,WI,55025
+86,New Castle,DE,10003
+87,City of Alexandria,VA,51510
+88,St. Louis,MO,29189
+89,DeKalb,GA,13089
+90,Bronx,NY,36005
+91,Connecticut Metropolitan,CT,09120
+92,Charleston,SC,45019
+93,Cumberland,ME,23005
+94,Collier,FL,12021
+95,Bexar,TX,48029
+96,Arapahoe,CO,08005
+97,Plymouth,MA,25023
+98,Rockingham,NH,33015
+99,Barnstable,MA,25001
+100,Providence,RI,44007
+101,Santa Barbara,CA,06083
+102,Chittenden,VT,50007
+103,Albany,NY,36001
+104,Lower Connecticut River Valley,CT,09130
+105,Santa Fe,NM,35049
+106,Hampshire,MA,25015
+107,Naugatuck Valley,CT,09140
+108,Berkshire,MA,25003
+109,Southeastern Connecticut,CT,09180
+110,Grafton,NH,33009
+111,Hampden,MA,25013
+112,Indian River,FL,12061
+113,Washington,RI,44009
+114,York,ME,23031
+115,Gallatin,MT,30031
+116,Newport,RI,44005
+117,Teton,WY,56039

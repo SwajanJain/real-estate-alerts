@@ -1,0 +1,22 @@
+{
+  "name": "@pm/real-estate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real estate monitoring matcher for prospect intelligence.",
+  "type": "commonjs",
+  "bin": {
+    "restate": "./dist/src/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "npm run build && node --test dist/tests/**/*.test.js"
+  },
+  "dependencies": {
+    "@pm/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  }
+}

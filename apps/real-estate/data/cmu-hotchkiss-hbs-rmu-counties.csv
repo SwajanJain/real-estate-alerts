@@ -1,0 +1,276 @@
+rank,county,state,fips
+1,Allegheny,PA,42003
+2,Santa Clara,CA,06085
+3,New York,NY,36061
+4,King,WA,53033
+5,Los Angeles,CA,06037
+6,Middlesex,MA,25017
+7,City and County of San Francisco,CA,06075
+8,Alameda,CA,06001
+9,San Mateo,CA,06081
+10,Kings,NY,36047
+11,Cook,IL,17031
+12,Montgomery,MD,24031
+13,Fairfax,VA,51059
+14,District of Columbia,DC,11001
+15,Hudson,NJ,34017
+16,Western Connecticut,CT,09190
+17,Westchester,NY,36119
+18,Westmoreland,PA,42129
+19,San Diego,CA,06073
+20,Queens,NY,36081
+21,Harris,TX,48201
+22,Travis,TX,48453
+23,Orange,CA,06059
+24,Bergen,NJ,34003
+25,Butler,PA,42019
+26,Montgomery,PA,42091
+27,Nassau,NY,36059
+28,Washington,PA,42125
+29,Philadelphia,PA,42101
+30,Maricopa,AZ,04013
+31,Essex,NJ,34013
+32,Norfolk,MA,25021
+33,Contra Costa,CA,06013
+34,Wake,NC,37183
+35,Suffolk,MA,25025
+36,Fulton,GA,13121
+37,Oakland,MI,26125
+38,Dallas,TX,48113
+39,Palm Beach,FL,12099
+40,Cuyahoga,OH,39035
+41,Arlington,VA,51013
+42,Capitol Region,CT,09110
+43,Miami-Dade,FL,12086
+44,Middlesex,NJ,34023
+45,Delaware,PA,42045
+46,Mecklenburg,NC,37119
+47,Mercer,NJ,34021
+48,Chester,PA,42029
+49,Suffolk,NY,36103
+50,Multnomah,OR,41051
+51,Morris,NJ,34027
+52,Howard,MD,24027
+53,Loudoun,VA,51107
+54,Somerset,NJ,34035
+55,Franklin,OH,39049
+56,Bucks,PA,42017
+57,Denver,CO,08031
+58,Collin,TX,48085
+59,Essex,MA,25009
+60,Northwest Hills,CT,09160
+61,Boulder,CO,08013
+62,Hennepin,MN,27053
+63,Snohomish,WA,53061
+64,South Central Regional,CT,09170
+65,Union,NJ,34039
+66,Anne Arundel,MD,24003
+67,Monmouth,NJ,34025
+68,Broward,FL,12011
+69,Washington,OR,41067
+70,Marin,CA,06041
+71,Williamson,TX,48491
+72,Monroe,NY,36055
+73,Baltimore (city),MD,24510
+74,Baltimore,MD,24005
+75,DuPage,IL,17043
+76,Beaver,PA,42007
+77,Lake,IL,17097
+78,Washtenaw,MI,26161
+79,Worcester,MA,25027
+80,Clark,NV,32003
+81,Wayne,MI,26163
+82,Orange,FL,12095
+83,Hamilton,OH,39061
+84,Dutchess,NY,36027
+85,New Castle,DE,10003
+86,Dane,WI,55025
+87,Prince George's,MD,24033
+88,Jefferson,CO,08059
+89,City of Alexandria,VA,51510
+90,Hillsborough,FL,12057
+91,Orange,NC,37135
+92,St. Louis,MO,29189
+93,Summit,OH,39153
+94,Tarrant,TX,48439
+95,Cobb,GA,13067
+96,Erie,NY,36029
+97,Pinellas,FL,12103
+98,Pima,AZ,04019
+99,Durham,NC,37063
+100,DeKalb,GA,13089
+101,Bronx,NY,36005
+102,Salt Lake,UT,49035
+103,Connecticut Metropolitan,CT,09120
+104,Bernalillo,NM,35001
+105,Lancaster,PA,42071
+106,Charleston,SC,45019
+107,Gwinnett,GA,13135
+108,Cumberland,ME,23005
+109,Ventura,CA,06111
+110,Sarasota,FL,12115
+111,Sacramento,CA,06067
+112,Collier,FL,12021
+113,Davidson,TN,47037
+114,Denton,TX,48121
+115,Honolulu,HI,15003
+116,Bexar,TX,48029
+117,Arapahoe,CO,08005
+118,Plymouth,MA,25023
+119,Riverside,CA,06065
+120,Hillsborough,NH,33011
+121,Cumberland,PA,42041
+122,Lehigh,PA,42077
+123,Rockingham,NH,33015
+124,Fort Bend,TX,48157
+125,Lee,FL,12071
+126,Douglas,CO,08035
+127,Barnstable,MA,25001
+128,El Paso,CO,08041
+129,Centre,PA,42027
+130,Frederick,MD,24021
+131,Camden,NJ,34007
+132,Providence,RI,44007
+133,Northampton,PA,42095
+134,Fairfax (city),VA,51600
+135,Santa Barbara,CA,06083
+136,Albany,NY,36001
+137,Chittenden,VT,50007
+138,Burlington,NJ,34005
+139,Saint Johns,FL,12109
+140,Hunterdon,NJ,34019
+141,Sonoma,CA,06097
+142,Brevard,FL,12009
+143,Manatee,FL,12081
+144,Lower Connecticut River Valley,CT,09130
+145,Ramsey,MN,27123
+146,Santa Cruz,CA,06087
+147,Dauphin,PA,42043
+148,Santa Fe,NM,35049
+149,Larimer,CO,08069
+150,Hampshire,MA,25015
+151,Montgomery,TX,48339
+152,Erie,PA,42049
+153,Montgomery,OH,39113
+154,Naugatuck Valley,CT,09140
+155,Berkshire,MA,25003
+156,Shelby,TN,47157
+157,Greenville,SC,45045
+158,Onondaga,NY,36067
+159,Delaware,OH,39041
+160,Buncombe,NC,37021
+161,Milwaukee,WI,55079
+162,San Bernardino,CA,06071
+163,Jefferson,KY,21111
+164,Tompkins,NY,36109
+165,Hamilton,IN,18057
+166,Williamson,TN,47187
+167,Prince William,VA,51153
+168,Johnson,KS,20091
+169,Pierce,WA,53053
+170,Duval,FL,12031
+171,Fayette,PA,42051
+172,Seminole,FL,12117
+173,Henrico,VA,51087
+174,Albemarle,VA,51003
+175,Clackamas,OR,41005
+176,York,PA,42133
+177,Washoe,NV,32031
+178,Saratoga,NY,36091
+179,Champaign,IL,17019
+180,Southeastern Connecticut,CT,09180
+181,Chesterfield,VA,51041
+182,Forsyth,NC,37067
+183,Kitsap,WA,53035
+184,Beaufort,SC,45013
+185,Orleans,LA,22071
+186,Passaic,NJ,34031
+187,Madison,AL,01089
+188,Guilford,NC,37081
+189,Orange,NY,36071
+190,Rockland,NY,36087
+191,Clark,WA,53011
+192,Warren,OH,39165
+193,Berks,PA,42011
+194,Grafton,NH,33009
+195,Butler,OH,39017
+196,Sussex,DE,10005
+197,Alachua,FL,12001
+198,Ulster,NY,36111
+199,Richmond,NY,36085
+200,Knox,TN,47093
+201,Lawrence,PA,42073
+202,Placer,CA,06061
+203,Mercer,PA,42085
+204,Hampden,MA,25013
+205,Bristol,MA,25005
+206,Indian River,FL,12061
+207,Tippecanoe,IN,18157
+208,Washington,RI,44009
+209,Stark,OH,39151
+210,Harford,MD,24025
+211,Carroll,MD,24013
+212,Ada,ID,16001
+213,Lake,OH,39085
+214,York,ME,23031
+215,Virginia Beach (city),VA,51810
+216,Macomb,MI,26099
+217,Will,IL,17197
+218,Marion,IN,18097
+219,Kane,IL,17089
+220,Monongalia,WV,54061
+221,Martin,FL,12085
+222,Mahoning,OH,39099
+223,Dakota,MN,27037
+224,St. Louis (city),MO,29510
+225,Utah,UT,49049
+226,Lorain,OH,39093
+227,Waukesha,WI,55133
+228,Armstrong,PA,42005
+229,Putnam,NY,36079
+230,Jefferson,AL,01073
+231,Gallatin,MT,30031
+232,New Hanover,NC,37129
+233,Weld,CO,08123
+234,Fayette,KY,21067
+235,Pasco,FL,12101
+236,Indiana,PA,42063
+237,Brunswick,NC,37019
+238,Volusia,FL,12127
+239,Merrimack,NH,33013
+240,Kent,MI,26081
+241,Douglas,NE,31055
+242,Summit,UT,49043
+243,Hanover,VA,51085
+244,Ocean,NJ,34029
+245,York,SC,45091
+246,Polk,FL,12105
+247,Falls Church (city),VA,51610
+248,Medina,OH,39103
+249,Ozaukee,WI,55089
+250,Washington,WI,55131
+251,Brown,WI,55009
+252,Racine,WI,55101
+253,Outagamie,WI,55087
+254,McHenry,IL,17111
+255,Winnebago,WI,55139
+256,Kenosha,WI,55059
+257,Sheboygan,WI,55117
+258,Fond du Lac,WI,55039
+259,Marathon,WI,55073
+260,Manitowoc,WI,55071
+261,Walworth,WI,55127
+262,Rock,WI,55105
+263,Jefferson,WI,55055
+264,La Crosse,WI,55063
+265,Winnebago,IL,17201
+266,Jackson,MO,29095
+267,Dodge,WI,55027
+268,Door,WI,55029
+269,Washington,MN,27163
+270,Nevada,CA,06057
+271,St. Joseph,IN,18141
+272,Eau Claire,WI,55035
+273,Portage,WI,55097
+274,Oneida,WI,55085
+275,Wood,WI,55141

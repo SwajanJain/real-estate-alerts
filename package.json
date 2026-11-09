@@ -1,0 +1,15 @@
+{
+  "name": "real-estate-alerts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-estate transaction alerts: match recorded home sales to client prospect lists.",
+  "workspaces": [
+    "packages/core",
+    "apps/real-estate"
+  ],
+  "scripts": {
+    "build": "npm run build -w @pm/core && npm run build -w @pm/real-estate",
+    "test": "npm run build -w @pm/core && npm test -w @pm/real-estate",
+    "test:core": "npm test -w @pm/core"
+  }
+}
