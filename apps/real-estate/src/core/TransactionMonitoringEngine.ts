@@ -27,9 +27,8 @@ import { routeMatch } from "../lib/review-router";
 import { writeMatchCsv, writeSummary } from "../io/csv-export";
 import { BatchDataClient } from "../fetchers/batchdata";
 import { CacheStore } from "../fetchers/cache-store";
-import { RealEstateApiClient } from "../fetchers/realestateapi";
-import { BatchDataSource, RealEstateApiSource } from "../fetchers/transaction-sources";
-import type { TransactionPageResult, TransactionSource } from "../fetchers/transaction-sources";
+import { BatchDataSource, createRealEstateApiSource } from "../fetchers/transaction-sources";
+import type { RealEstateApiFetchMode, TransactionPageResult, TransactionSource } from "../fetchers/transaction-sources";
 import { CountyLookup } from "../lib/county-list";
 import { normalizeAddress } from "../parsers/address-normalizer";
 import { readEnvFile } from "../cli/util";
@@ -61,13 +60,21 @@ function inDateRange(date: string | undefined, startDate: string, endDate: strin
   return date >= startDate && date <= endDate;
 }
 
-// Both BatchData (sale.lastSaleDate) and RealEstateAPI (last_sale_date) filter
-// on the CLOSING/transaction date (saleTransactionDate), NOT the recording date.
-// Recording lags the sale by 1-3 weeks, so filtering on recording date drops
-// the freshest ~20% of the sales we actually fetched. Stay consistent with the
-// fetch filter: use the transaction (closing) date as the canonical event date.
+// The closing (transaction) date is the event date used in dedupe keys and
+// detail lookups.
 function effectiveSaleDate(p: PropertyRecord): string | undefined {
   return normalizeDate(p.saleTransactionDate) ?? normalizeDate(p.saleRecordDate) ?? normalizeDate(p.lastSaleDate);
+}
+
+// The date a record is checked against the window with: the same date the
+// source filtered its query on. BatchData and the RealEstateAPI search path
+// filter on the CLOSING date; the RealEstateAPI Bulk path filters on the
+// RECORDING date, so a deed recorded late (for example closed 28 April,
+// recorded 4 May) is seen once, in the month it was filed.
+function windowDate(p: PropertyRecord, by: "sale" | "recording"): string | undefined {
+  return by === "recording"
+    ? normalizeDate(p.saleRecordDate) ?? normalizeDate(p.saleTransactionDate)
+    : normalizeDate(p.saleTransactionDate) ?? normalizeDate(p.saleRecordDate);
 }
 
 function prospectAddressLike(prospect: ProspectRecord): string | undefined {
@@ -173,9 +180,8 @@ function hasMatchableParty(p: PropertyRecord): boolean {
   return p.parsedOwners.length > 0 || p.parsedSellers.length > 0;
 }
 
-function isTransactionCandidate(p: PropertyRecord, alertStart: string, alertEnd: string): boolean {
-  const saleDate = normalizeDate(p.saleTransactionDate) ?? normalizeDate(p.saleRecordDate);
-  if (!inDateRange(saleDate, alertStart, alertEnd)) return false;
+function isTransactionCandidate(p: PropertyRecord, alertStart: string, alertEnd: string, by: "sale" | "recording"): boolean {
+  if (!inDateRange(windowDate(p, by), alertStart, alertEnd)) return false;
   if (!hasMatchableParty(p)) return false;
   // Only reject when the price is KNOWN and nominal ($1 quitclaims etc.). A
   // missing price is a vendor data gap, not evidence of a non-sale — dropping
@@ -227,9 +233,11 @@ export class TransactionMonitoringEngine {
     const prospectAddresses = prospectStreetKeys(prospects);
     const detailBudget = { remaining: options.maxDetailLookups ?? 100, warned: false };
     manifest.counts.detailLookups = 0;
+    manifest.counts.billableRecords = 0;
 
-    // Both vendors filter on the sale date, which we treat as the alert window directly.
-    // No extra lookback needed (ATTOM's calendardate problem doesn't apply here).
+    // The window is checked with the same date the source's query filtered on
+    // (closing date, or recording date for the Bulk path). No extra lookback.
+    const windowBy = this.source.windowDate ?? "sale";
     const alertEnd = normalizeDate(options.endDate) ?? todayIsoDate();
     const alertStart = normalizeDate(options.startDate) ?? alertEnd;
 
@@ -256,6 +264,7 @@ export class TransactionMonitoringEngine {
           const pageResult = await this.loadPage(fips, alertStart, alertEnd, page);
           manifest.counts.apiCalls += pageResult.fromCache ? 0 : 1;
           manifest.counts.cacheHits += pageResult.fromCache ? 1 : 0;
+          if (!pageResult.fromCache) manifest.counts.billableRecords = (manifest.counts.billableRecords ?? 0) + pageResult.properties.length;
           if (typeof pageResult.pages === "number") pages = pageResult.pages;
           this.cache.markPageComplete(fips, alertStart, alertEnd, page, pages);
 
@@ -265,14 +274,15 @@ export class TransactionMonitoringEngine {
             property = await this.withSaleDetail(property, prospectAddresses, alertStart, alertEnd, manifest, detailBudget);
             manifest.counts.propertyRecordsProcessed += 1;
             manifest.counts.ownersParsed += property.parsedOwners.length + property.parsedSellers.length;
-            if (!isTransactionCandidate(property, alertStart, alertEnd)) continue;
+            if (!isTransactionCandidate(property, alertStart, alertEnd, windowBy)) continue;
             const propertyMatches = this.matchProperty(property, prospectIndex);
             matches.push(...propertyMatches);
             manifest.counts.candidateMatches += propertyMatches.length;
           }
 
-          if (pageResult.properties.length < pageResult.pageSize) break;
-          if (typeof pages === "number" && page >= pages) break;
+          // Stop on the known page count when the source gives one: a Bulk page
+          // can come back short (an ID with no record) without being the last page.
+          if (typeof pages === "number" ? page >= pages : pageResult.properties.length < pageResult.pageSize) break;
           page += 1;
         }
 
@@ -434,13 +444,14 @@ export class TransactionMonitoringEngine {
   static fromEnv(
     cwd: string,
     vendor: TransactionVendor,
-    options: { countyListPath?: string; stateDir?: string; armsLengthOnly?: boolean } = {},
+    options: { countyListPath?: string; stateDir?: string; armsLengthOnly?: boolean; fetchMode?: RealEstateApiFetchMode } = {},
   ): TransactionMonitoringEngine {
     const env = readEnvFile(cwd);
     const root = options.stateDir || process.env.RESTATE_STATE_DIR || env.RESTATE_STATE_DIR || path.join(cwd, ".restate");
     const stateStore = new StateStore(root);
     stateStore.ensure();
     const countyLookup = options.countyListPath ? CountyLookup.fromCsv(options.countyListPath) : undefined;
+    const cache = new CacheStore(stateStore, vendor);
 
     let source: TransactionSource;
     if (vendor === "batchdata") {
@@ -451,14 +462,10 @@ export class TransactionMonitoringEngine {
     } else {
       const apiKey = process.env.REALESTATEAPI_API_KEY || env.REALESTATEAPI_API_KEY || "";
       if (!apiKey) throw new Error("Missing REALESTATEAPI_API_KEY in environment or .env");
-      source = new RealEstateApiSource(new RealEstateApiClient({ apiKey, armsLengthOnly: options.armsLengthOnly ?? true }));
+      source = createRealEstateApiSource({ apiKey, armsLengthOnly: options.armsLengthOnly ?? true }, options.fetchMode ?? "bulk", cache);
     }
 
-    return new TransactionMonitoringEngine({
-      source,
-      cache: new CacheStore(stateStore, source.vendor),
-      countyLookup,
-    });
+    return new TransactionMonitoringEngine({ source, cache, countyLookup });
   }
 
   get transactionSource(): TransactionSource {

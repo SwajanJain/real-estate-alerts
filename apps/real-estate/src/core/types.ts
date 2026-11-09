@@ -176,6 +176,8 @@ export interface MonitoringStats {
   acceptedMatches: number;
   reviewMatches: number;
   detailLookups?: number;
+  // Records fetched from the vendor this run (not from cache): 1 credit each.
+  billableRecords?: number;
 }
 
 export interface MonitoringManifest {

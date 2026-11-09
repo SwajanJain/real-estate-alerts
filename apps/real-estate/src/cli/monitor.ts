@@ -5,6 +5,7 @@ import { createLogger } from "@pm/core";
 
 import { MonitoringEngine } from "../core/MonitoringEngine";
 import { TransactionMonitoringEngine } from "../core/TransactionMonitoringEngine";
+import type { RealEstateApiFetchMode } from "../fetchers/transaction-sources";
 import { assertWithinCreditBudget, estimateUncachedRecords } from "../lib/credit-preflight";
 import { loadCountyList } from "../lib/county-list";
 import { parseArgs } from "./util";
@@ -14,6 +15,14 @@ const DEFAULT_MAX_CREDITS = 500;
 
 function readCountiesFromCsv(csvPath: string): string[] {
   return loadCountyList(csvPath).map((e) => e.fips);
+}
+
+// RealEstateAPI fetch: "bulk" (default; ids_only + PropertyDetailBulk, deed
+// sellers, recording-date windows) or "search" (legacy PropertySearch rows).
+export function parseFetchMode(value: string | undefined): RealEstateApiFetchMode {
+  const mode = (value ?? "bulk").toLowerCase();
+  if (mode !== "bulk" && mode !== "search") throw new Error(`Unknown --fetch=${value}. Use bulk or search.`);
+  return mode;
 }
 
 function isoDate(value: string | undefined): string | undefined {
@@ -43,8 +52,8 @@ export async function monitorCli(argv: string[]): Promise<void> {
       "  restate monitor --prospects=/path/file.csv --counties=11001,36061 [--start=YYYY-MM-DD] [--end=YYYY-MM-DD]\n" +
       "  restate monitor --vendor=batchdata --prospects=/path/file.csv --county-list=/path/counties.csv\n" +
       "  restate monitor --vendor=realestateapi --prospects=/path/file.csv (--counties=55133 | --county-list=/path/counties.csv)\n" +
-      "                  --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500] [--max-detail-credits=100] [--dry-run=true]\n" +
-      "                  [--include-non-arms-length=true]",
+      "                  --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500] [--dry-run=true]\n" +
+      "                  [--fetch=bulk|search] [--max-detail-credits=100 (search only)] [--include-non-arms-length=true]",
     );
   }
 
@@ -68,10 +77,12 @@ export async function monitorCli(argv: string[]): Promise<void> {
     if (vendor === "batchdata" && !countyList) {
       throw new Error("--vendor=batchdata requires --county-list (FIPS-to-name lookup)");
     }
+    const fetchMode = parseFetchMode(args.fetch);
     const engine = TransactionMonitoringEngine.fromEnv(cwd, vendor, {
       countyListPath: countyList,
       stateDir,
       armsLengthOnly: args["include-non-arms-length"] !== "true",
+      fetchMode,
     });
 
     if (vendor === "realestateapi") {
@@ -82,9 +93,10 @@ export async function monitorCli(argv: string[]): Promise<void> {
       });
       const maxCredits = Number(args["max-credits"] ?? DEFAULT_MAX_CREDITS);
       process.stderr.write(
-        `Credit preflight (count-only requests): ~${estimate?.total ?? 0} billable records across ` +
-        `${counties.length} counties, ${startDate} to ${endDate}; budget ${maxCredits}. ` +
-        `Plus up to ${runOptions.maxDetailLookups} detail lookups for sales at prospect addresses.\n`,
+        `Credit preflight (count-only requests, ${fetchMode} fetch): ~${estimate?.total ?? 0} billable records across ` +
+        `${counties.length} counties, ${startDate} to ${endDate}; budget ${maxCredits}.` +
+        (fetchMode === "search" ? ` Plus up to ${runOptions.maxDetailLookups} detail lookups for sales at prospect addresses.` : "") +
+        "\n",
       );
       if (args["dry-run"] === "true") {
         for (const row of estimate?.counties ?? []) {

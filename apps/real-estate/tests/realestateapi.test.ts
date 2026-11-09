@@ -9,7 +9,7 @@ import { createLogger, StateStore } from "@pm/core";
 import { TransactionMonitoringEngine } from "../src/core/TransactionMonitoringEngine";
 import { CacheStore } from "../src/fetchers/cache-store";
 import { RealEstateApiClient } from "../src/fetchers/realestateapi";
-import { RealEstateApiSource } from "../src/fetchers/transaction-sources";
+import { createRealEstateApiSource, RealEstateApiSource } from "../src/fetchers/transaction-sources";
 import { assertWithinCreditBudget, estimateUncachedRecords } from "../src/lib/credit-preflight";
 import {
   applyRealEstateApiSaleDetail,
@@ -448,4 +448,91 @@ test("normalizeRealEstateApiDetail: undisclosed price, quitclaim, owner fallback
   assert.equal(normalizeRealEstateApiDetail(detailRecord({}, { documentType: "Quit Claim Deed", documentTypeCode: "DTQC" })).quitClaimFlag, "true");
   assert.deepEqual(normalizeRealEstateApiDetail(detailRecord({}, { buyerNames: null })).parsedOwners.map((o) => o.normalized), ["alan quartermain"]);
   assert.equal(normalizeRealEstateApiDetail({ input: { id: 90000001 }, data: detailRecord() }).sourcePropertyId, "90000001");
+});
+
+// Serves ids_only, count and PropertyDetailBulk calls from a fixed record set.
+function bulkApi(records: Array<Record<string, unknown>>, calls: Array<{ url: string; body: Record<string, unknown> }>): typeof fetch {
+  return (async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    calls.push({ url: String(url), body });
+    const reply = (data: unknown) => new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+    if (String(url).endsWith("/PropertyDetailBulk")) {
+      const wanted = new Set((body.ids as number[]).map(String));
+      return reply({ statusCode: 200, data: records.filter((r) => wanted.has(String(r.id))).reverse() }); // vendor order differs
+    }
+    if (body.count) return reply({ resultCount: records.length, recordCount: 0, data: [] });
+    return reply({ resultCount: records.length, recordCount: records.length, data: records.map((r) => r.id) });
+  }) as unknown as typeof fetch;
+}
+
+test("RealEstateApiBulkSource pages 1,000 IDs at a time, restores ID order, and lists IDs once", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "restate-reapi-bulk-"));
+  const stateStore = new StateStore(path.join(tempDir, ".restate"));
+  stateStore.ensure();
+  const cache = new CacheStore(stateStore, "realestateapi");
+  const records = Array.from({ length: 2500 }, (_, i) => ({ id: 1000 + i })).filter((r) => r.id !== 1500); // one ID has no record
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const idsOnly = (async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    if (!String(url).endsWith("/PropertyDetailBulk")) {
+      calls.push({ url: String(url), body });
+      return new Response(JSON.stringify({ resultCount: 2500, data: Array.from({ length: 2500 }, (_, i) => 1000 + i) }), { status: 200 });
+    }
+    return bulkApi(records, calls)(url, init);
+  }) as unknown as typeof fetch;
+  const source = createRealEstateApiSource({ apiKey: "test", fetchImpl: idsOnly }, "bulk", cache);
+  const window = { fips: "55133", startDate: "2026-05-01", endDate: "2026-05-31" };
+
+  const first = await source.fetchCountyPage({ ...window, page: 1 });
+  assert.equal(source.windowDate, "recording");
+  assert.equal(first.pages, 3);
+  assert.equal(first.properties.length, 999); // short page, but not the last one
+  assert.deepEqual(first.properties.slice(0, 2).map((r) => (r as { id: number }).id), [1000, 1001]);
+  const last = await source.fetchCountyPage({ ...window, page: 3 });
+  assert.equal(last.properties.length, 500);
+  const searches = calls.filter((c) => c.url.endsWith("/PropertySearch"));
+  assert.equal(searches.length, 1); // the ID list is saved and reused
+  assert.equal(searches[0].body.recording_date_min, "2026-05-01");
+  assert.ok(calls.filter((c) => c.url.endsWith("/PropertyDetailBulk")).every((c) => (c.body.ids as number[]).length <= 1000));
+});
+
+test("Bulk path matches a deed seller in the month the deed was recorded, counts credits, and reruns from cache", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "restate-reapi-bulk-engine-"));
+  const stateStore = new StateStore(path.join(tempDir, ".restate"));
+  stateStore.ensure();
+  const prospectsPath = path.join(tempDir, "prospects.csv");
+  fs.writeFileSync(prospectsPath, ["prospect_id,name,address,city,state,zip", "p1,Zelda Moorcroft,12 Oak Ridge Drive,Brookfield,WI,53045"].join("\n"), "utf8");
+
+  const records = [
+    detailRecord(), // closed 28 April, recorded 4 May; deed seller Zelda K Moorcroft
+    detailRecord(
+      { id: 90000002, propertyInfo: { address: { address: "99 Elsewhere Ln", city: "Waukesha", fips: "55133", state: "WI", zip: "53188" } } },
+      { sellerNames: "Someone Else", saleDate: "2026-05-02T00:00:00.000Z", recordingDate: "2026-05-10" },
+    ),
+  ];
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const cache = new CacheStore(stateStore, "realestateapi");
+  const engine = new TransactionMonitoringEngine({
+    source: createRealEstateApiSource({ apiKey: "test", fetchImpl: bulkApi(records, calls) }, "bulk", cache),
+    cache,
+    logger: createLogger(false),
+  });
+  const runOptions = {
+    runId: "reapi-bulk", logger: createLogger(false), prospectsPath, counties: ["55133"],
+    startDate: "2026-05-01", endDate: "2026-05-31", outputDir: path.join(tempDir, "runs"),
+  };
+
+  const manifest = await engine.execute(runOptions);
+  assert.equal(manifest.counts.acceptedMatches, 1);
+  assert.equal(manifest.counts.billableRecords, 2);
+  assert.equal(manifest.counts.detailLookups, 0);
+  const csv = fs.readFileSync(manifest.outputs.clientCsv, "utf8");
+  assert.match(csv, /Zelda Moorcroft,Zelda K Moorcroft,seller/);
+  assert.match(csv, /high,street-verified/);
+
+  const before = calls.length;
+  const rerun = await engine.execute({ ...runOptions, runId: "reapi-bulk-2" });
+  assert.equal(rerun.counts.apiCalls, 0);
+  assert.equal(rerun.counts.billableRecords, 0);
+  assert.equal(calls.length, before);
 });
