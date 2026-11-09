@@ -1,0 +1,727 @@
+rank,county,state,fips
+1,New York,NY,36061
+2,Fairfield,CT,09001
+3,Litchfield,CT,09005
+4,Westchester,NY,36119
+5,Los Angeles,CA,06037
+6,Kings,NY,36047
+7,Middlesex,MA,25017
+8,District of Columbia,DC,11001
+9,City and County of San Francisco,CA,06075
+10,Cook,IL,17031
+11,Hartford,CT,09003
+12,Norfolk,MA,25021
+13,Palm Beach,FL,12099
+14,New Haven,CT,09009
+15,Suffolk,MA,25025
+16,Nassau,NY,36059
+17,Dutchess,NY,36027
+18,King,WA,53033
+19,Suffolk,NY,36103
+20,Montgomery,MD,24031
+21,Queens,NY,36081
+22,Miami-Dade,FL,12086
+23,Harris,TX,48201
+24,Bergen,NJ,34003
+25,Marin,CA,06041
+26,Fulton,GA,13121
+27,Essex,MA,25009
+28,Denver,CO,08031
+29,Fairfax,VA,51059
+30,Santa Clara,CA,06085
+31,Travis,TX,48453
+32,Cumberland,ME,23005
+33,Alameda,CA,06001
+34,Mercer,NJ,34021
+35,San Diego,CA,06073
+36,Berkshire,MA,25003
+37,Essex,NJ,34013
+38,Philadelphia,PA,42101
+39,Bronx,NY,36005
+40,Mecklenburg,NC,37119
+41,San Mateo,CA,06081
+42,Dallas,TX,48113
+43,Boulder,CO,08013
+44,Plymouth,MA,25023
+45,Orange,CA,06059
+46,Lake,IL,17097
+47,Barnstable,MA,25001
+48,Morris,NJ,34027
+49,Montgomery,PA,42091
+50,Hennepin,MN,27053
+51,Wake,NC,37183
+52,New London,CT,09011
+53,Maricopa,AZ,04013
+54,Multnomah,OR,41051
+55,Charleston,SC,45019
+56,Chittenden,VT,50007
+57,Chester,PA,42029
+58,Delaware,PA,42045
+59,Contra Costa,CA,06013
+60,Hampden,MA,25013
+61,Monmouth,NJ,34025
+62,Hampshire,MA,25015
+63,Allegheny,PA,42003
+64,Hudson,NJ,34017
+65,Washington,RI,44009
+66,Indian River,FL,12061
+67,Grafton,NH,33009
+68,Providence,RI,44007
+69,York,ME,23031
+70,Anne Arundel,MD,24003
+71,Bexar,TX,48029
+72,Albemarle,VA,51003
+73,Collier,FL,12021
+74,Wayne,MI,26163
+75,Somerset,NJ,34035
+76,Santa Fe,NM,35049
+77,Albany,NY,36001
+78,Arapahoe,CO,08005
+79,Worcester,MA,25027
+80,Union,NJ,34039
+81,Santa Barbara,CA,06083
+82,Newport,RI,44005
+83,Teton,WY,56039
+84,Arlington,VA,51013
+85,Alexandria (city),VA,51510
+86,Martin,FL,12085
+87,DeKalb,GA,13089
+88,Gallatin,MT,30031
+89,Rockingham,NH,33015
+90,Monroe,NY,36055
+91,Sonoma,CA,06097
+92,Middlesex,CT,09007
+93,New Castle,DE,10003
+94,Broward,FL,12011
+95,Baltimore (city),MD,24510
+96,St. Louis,MO,29189
+97,Beaufort,SC,45013
+98,Sarasota,FL,12115
+99,DuPage,IL,17043
+100,Davidson,TN,47037
+101,Summit,UT,49043
+102,Addison,VT,50001
+103,Jefferson,CO,08059
+104,Pitkin,CO,08097
+105,Lee,FL,12071
+106,Blaine,ID,16013
+107,Clark,NV,32003
+108,Merrimack,NH,33013
+109,Washington,VT,50023
+110,Loudoun,VA,51107
+111,St. Johns,FL,12109
+112,Dukes,MA,25007
+113,Franklin,MA,25011
+114,Forsyth,NC,37067
+115,Cuyahoga,OH,39035
+116,Pinellas,FL,12103
+117,Onondaga,NY,36067
+118,Orange,NY,36071
+119,Shelby,TN,47157
+120,Sacramento,CA,06067
+121,Hillsborough,FL,12057
+122,Howard,MD,24027
+123,Saratoga,NY,36091
+124,Ulster,NY,36111
+125,Buncombe,NC,37021
+126,Durham,NC,37063
+127,Ventura,CA,06111
+128,Orange,FL,12095
+129,Bristol,MA,25005
+130,Hillsborough,NH,33011
+131,Franklin,OH,39049
+132,Salt Lake,UT,49035
+133,Orleans Parish,LA,22071
+134,Baltimore,MD,24005
+135,Oakland,MI,26125
+136,Putnam,NY,36079
+137,Hamilton,OH,39061
+138,Pima,AZ,04019
+139,Fayette,KY,21067
+140,Jefferson,KY,21111
+141,Hancock,ME,23009
+142,Columbia,NY,36021
+143,Bennington,VT,50003
+144,Windsor,VT,50027
+145,Cobb,GA,13067
+146,Prince George's,MD,24033
+147,Hunterdon,NJ,34019
+148,Clackamas,OR,41005
+149,Washington,OR,41067
+150,Denton,TX,48121
+151,Fort Bend,TX,48157
+152,Milwaukee,WI,55079
+153,Tolland,CT,09013
+154,Honolulu,HI,15003
+155,Lincoln,ME,23015
+156,Washtenaw,MI,26161
+157,Passaic,NJ,34031
+158,Orange,NC,37135
+159,Lane,OR,41039
+160,Bristol,RI,44001
+161,Tarrant,TX,48439
+162,Dane,WI,55025
+163,Riverside,CA,06065
+164,Duval,FL,12031
+165,Ada,ID,16001
+166,Nantucket,MA,25019
+167,Ramsey,MN,27123
+168,Washoe,NV,32031
+169,Tompkins,NY,36109
+170,Bucks,PA,42017
+171,Henrico,VA,51087
+172,Pierce,WA,53053
+173,Douglas,CO,08035
+174,Eagle,CO,08037
+175,Gwinnett,GA,13135
+176,Marion,IN,18097
+177,Jefferson Parish,LA,22051
+178,Kennebec,ME,23011
+179,Talbot,MD,24041
+180,Burlington,NJ,34005
+181,Middlesex,NJ,34023
+182,Erie,NY,36029
+183,Windham,VT,50025
+184,Napa,CA,06055
+185,El Paso,CO,08041
+186,Routt,CO,08107
+187,Volusia,FL,12127
+188,Bernalillo,NM,35001
+189,Essex,NY,36031
+190,Oklahoma,OK,40109
+191,Kent,RI,44003
+192,Jasper,SC,45053
+193,Williamson,TN,47187
+194,Collin,TX,48085
+195,Richmond (city),VA,51760
+196,Clark,WA,53011
+197,Monterey,CA,06053
+198,San Luis Obispo,CA,06079
+199,Santa Cruz,CA,06087
+200,Adams,CO,08001
+201,Will,IL,17197
+202,Leelanau,MI,26089
+203,Missoula,MT,30063
+204,Ocean,NJ,34029
+205,Rensselaer,NY,36083
+206,St. Lawrence,NY,36089
+207,Guilford,NC,37081
+208,Montgomery,OH,39113
+209,Jackson,OR,41029
+210,Westmoreland,PA,42129
+211,Greenville,SC,45045
+212,Lamoille,VT,50015
+213,Jefferson,WA,53031
+214,Alachua,FL,12001
+215,Lake,FL,12069
+216,Manatee,FL,12081
+217,Seminole,FL,12117
+218,Linn,IA,19113
+219,Johnson,KS,20091
+220,Knox,ME,23013
+221,Flathead,MT,30029
+222,Carroll,NH,33003
+223,Strafford,NH,33017
+224,Sullivan,NH,33019
+225,Madison,NY,36053
+226,Richmond,NY,36085
+227,Rockland,NY,36087
+228,Schenectady,NY,36093
+229,Brunswick,NC,37019
+230,Moore,NC,37125
+231,Union,NC,37179
+232,Cumberland,PA,42041
+233,Lancaster,PA,42071
+234,James City,VA,51095
+235,Jefferson,AL,01073
+236,Anchorage Municipality,AK,02020
+237,Nevada,CA,06057
+238,San Bernardino,CA,06071
+239,Larimer,CO,08069
+240,San Miguel,CO,08113
+241,Brevard,FL,12009
+242,St. Lucie,FL,12111
+243,Chatham,GA,13051
+244,Cherokee,GA,13057
+245,Maui,HI,15009
+246,Kane,IL,17089
+247,Polk,IA,19153
+248,Sagadahoc,ME,23023
+249,Frederick,MD,24021
+250,Kent,MI,26081
+251,Oneida,NY,36065
+252,Warren,NY,36113
+253,Delaware,OH,39041
+254,Yamhill,OR,41071
+255,Monroe,PA,42089
+256,Knox,TN,47093
+257,Williamson,TX,48491
+258,Caledonia,VT,50005
+259,Bedford,VA,51019
+260,Fauquier,VA,51061
+261,Manassas (city),VA,51683
+262,Kitsap,WA,53035
+263,Thurston,WA,53067
+264,Pulaski,AR,05119
+265,El Dorado,CA,06017
+266,Mendocino,CA,06045
+267,Garfield,CO,08045
+268,La Plata,CO,08067
+269,Polk,FL,12105
+270,Sumter,FL,12119
+271,Clarke,GA,13059
+272,Coweta,GA,13077
+273,Kauai,HI,15007
+274,Winnebago,IL,17201
+275,Hamilton,IN,18057
+276,St. Tammany Parish,LA,22103
+277,Androscoggin,ME,23001
+278,Franklin,ME,23007
+279,Penobscot,ME,23019
+280,Calvert,MD,24009
+281,Jackson,MO,29095
+282,Lake,MT,30047
+283,Madison,MT,30057
+284,Belknap,NH,33001
+285,Cheshire,NH,33005
+286,Camden,NJ,34007
+287,Sandoval,NM,35043
+288,Taos,NM,35055
+289,Cayuga,NY,36011
+290,Washington,NY,36115
+291,Catawba,NC,37035
+292,Chatham,NC,37037
+293,Henderson,NC,37089
+294,New Hanover,NC,37129
+295,Lake,OH,39085
+296,Summit,OH,39153
+297,Deschutes,OR,41017
+298,Lehigh,PA,42077
+299,Northampton,PA,42095
+300,Hamilton,TN,47065
+301,Franklin,VT,50011
+302,Chesterfield,VA,51041
+303,Skagit,WA,53057
+304,Nicholas,WV,54067
+305,Madison,AL,01089
+306,Coconino,AZ,04005
+307,Yavapai,AZ,04025
+308,Washington,AR,05143
+309,Placer,CA,06061
+310,Solano,CA,06095
+311,Yolo,CA,06113
+312,Broomfield,CO,08014
+313,Clear Creek,CO,08019
+314,Mesa,CO,08077
+315,Summit,CO,08117
+316,Weld,CO,08123
+317,Charlotte,FL,12015
+318,Monroe,FL,12087
+319,Boone,IN,18011
+320,Lake,IN,18089
+321,Monroe,IN,18105
+322,Vanderburgh,IN,18163
+323,Johnson,IA,19103
+324,Somerset,ME,23025
+325,Waldo,ME,23027
+326,Platte,MO,29165
+327,Lewis and Clark,MT,30049
+328,Douglas,NE,31055
+329,Gloucester,NJ,34015
+330,Sussex,NJ,34037
+331,Warren,NJ,34041
+332,Cattaraugus,NY,36009
+333,Jefferson,NY,36045
+334,Steuben,NY,36101
+335,Sullivan,NY,36105
+336,Carteret,NC,37031
+337,Transylvania,NC,37175
+338,Watauga,NC,37189
+339,Clermont,OH,39025
+340,Stark,OH,39151
+341,Marion,OR,41047
+342,Bradford,PA,42015
+343,Lackawanna,PA,42069
+344,Luzerne,PA,42079
+345,Aiken,SC,45003
+346,York,SC,45091
+347,Brazos,TX,48041
+348,El Paso,TX,48141
+349,Hays,TX,48209
+350,Montgomery,TX,48339
+351,Orange,VT,50017
+352,Rutland,VT,50021
+353,Island,WA,53029
+354,Snohomish,WA,53061
+355,Eau Claire,WI,55035
+356,Walworth,WI,55127
+357,Winnebago,WI,55139
+358,Houston,AL,01069
+359,Fairbanks North Star Borough,AK,02090
+360,Juneau City and Borough,AK,02110
+361,Apache,AZ,04001
+362,Chaffee,CO,08015
+363,Grand,CO,08049
+364,Gunnison,CO,08051
+365,Mineral,CO,08079
+366,Kent,DE,10001
+367,Bay,FL,12005
+368,Clay,FL,12019
+369,Escambia,FL,12033
+370,Leon,FL,12073
+371,Marion,FL,12083
+372,Okaloosa,FL,12091
+373,Bibb,GA,13021
+374,Columbia,GA,13073
+375,Glynn,GA,13127
+376,Muscogee,GA,13215
+377,Richmond,GA,13245
+378,Elmore,ID,16039
+379,Teton,ID,16081
+380,Valley,ID,16085
+381,McHenry,IL,17111
+382,Mercer,IL,17131
+383,Porter,IN,18127
+384,Sedgwick,KS,20173
+385,Boyle,KY,21021
+386,Shelby,KY,21211
+387,East Baton Rouge Parish,LA,22033
+388,Charles,MD,24017
+389,Queen Anne's,MD,24035
+390,Benzie,MI,26019
+391,Emmet,MI,26047
+392,Grand Traverse,MI,26055
+393,St. Louis,MN,27137
+394,Hinds,MS,28049
+395,Boone,MO,29019
+396,St. Louis (city),MO,29510
+397,Coos,NH,33007
+398,Salem,NJ,34033
+399,Allegany,NY,36003
+400,Clinton,NY,36019
+401,Franklin,NY,36033
+402,Greene,NY,36039
+403,Niagara,NY,36063
+404,Ontario,NY,36069
+405,Yates,NY,36123
+406,Alamance,NC,37001
+407,Cumberland,NC,37051
+408,Gaston,NC,37071
+409,Person,NC,37145
+410,Polk,NC,37149
+411,Wilkes,NC,37193
+412,Fairfield,OH,39045
+413,Geauga,OH,39055
+414,Greene,OH,39057
+415,Licking,OH,39089
+416,Warren,OH,39165
+417,Wood,OH,39173
+418,Hood River,OR,41027
+419,Polk,OR,41053
+420,Berks,PA,42011
+421,Butler,PA,42019
+422,Centre,PA,42027
+423,Crawford,PA,42039
+424,Dauphin,PA,42043
+425,Erie,PA,42049
+426,Pike,PA,42103
+427,York,PA,42133
+428,Colleton,SC,45029
+429,Florence,SC,45041
+430,Pickens,SC,45077
+431,Richland,SC,45079
+432,Marion,TN,47115
+433,Rutherford,TN,47149
+434,Brazoria,TX,48039
+435,Gillespie,TX,48171
+436,Guadalupe,TX,48187
+437,Hidalgo,TX,48215
+438,Kendall,TX,48259
+439,Randall,TX,48381
+440,Wharton,TX,48481
+441,Grand Isle,VT,50013
+442,Orleans,VT,50019
+443,Clarke,VA,51043
+444,Floyd,VA,51063
+445,Montgomery,VA,51121
+446,Northampton,VA,51131
+447,Prince William,VA,51153
+448,Stafford,VA,51179
+449,Chesapeake (city),VA,51550
+450,Falls Church (city),VA,51610
+451,Norfolk (city),VA,51710
+452,Suffolk (city),VA,51800
+453,Virginia Beach (city),VA,51810
+454,Clallam,WA,53009
+455,Skamania,WA,53059
+456,Walla Walla,WA,53071
+457,Whatcom,WA,53073
+458,Door,WI,55029
+459,Green Lake,WI,55047
+460,Kenosha,WI,55059
+461,Waukesha,WI,55133
+462,Waupaca,WI,55135
+463,Fremont,WY,56013
+464,Sheridan,WY,56033
+465,Baldwin,AL,01003
+466,Lawrence,AL,01079
+467,Mobile,AL,01097
+468,Montgomery,AL,01101
+469,Tuscaloosa,AL,01125
+470,Ketchikan Gateway Borough,AK,02130
+471,Matanuska-Susitna Borough,AK,02170
+472,Nome Census Area,AK,02180
+473,Pinal,AZ,04021
+474,Santa Cruz,AZ,04023
+475,Carroll,AR,05015
+476,Lincoln,AR,05079
+477,Sebastian,AR,05131
+478,Fresno,CA,06019
+479,San Benito,CA,06069
+480,San Joaquin,CA,06077
+481,Shasta,CA,06089
+482,Siskiyou,CA,06093
+483,Montezuma,CO,08083
+484,Ouray,CO,08091
+485,Pueblo,CO,08101
+486,Washington,CO,08121
+487,Windham,CT,09015
+488,Sussex,DE,10005
+489,Citrus,FL,12017
+490,Hernando,FL,12053
+491,Nassau,FL,12089
+492,Pasco,FL,12101
+493,Santa Rosa,FL,12113
+494,Walton,FL,12131
+495,Bartow,GA,13015
+496,Bryan,GA,13029
+497,Douglas,GA,13097
+498,Effingham,GA,13103
+499,Emanuel,GA,13107
+500,Fannin,GA,13111
+501,Fayette,GA,13113
+502,Forsyth,GA,13117
+503,Gordon,GA,13129
+504,Hall,GA,13139
+505,Henry,GA,13151
+506,Jackson,GA,13157
+507,Lumpkin,GA,13187
+508,Oconee,GA,13219
+509,Seminole,GA,13253
+510,Wilcox,GA,13315
+511,Hawaii,HI,15001
+512,Bonner,ID,16017
+513,Kootenai,ID,16055
+514,Twin Falls,ID,16083
+515,DeKalb,IL,17037
+516,Jackson,IL,17077
+517,Kendall,IL,17093
+518,McDonough,IL,17109
+519,Madison,IL,17119
+520,Floyd,IN,18043
+521,Marshall,IN,18099
+522,St. Joseph,IN,18141
+523,Steuben,IN,18151
+524,Bremer,IA,19017
+525,Cass,IA,19029
+526,Clinton,IA,19045
+527,Dallas,IA,19049
+528,Hardin,IA,19083
+529,Monona,IA,19133
+530,Scott,IA,19163
+531,Shelby,IA,19165
+532,Story,IA,19169
+533,Shawnee,KS,20177
+534,Sumner,KS,20191
+535,Bourbon,KY,21017
+536,Franklin,KY,21073
+537,Henry,KY,21103
+538,Jessamine,KY,21113
+539,Lincoln,KY,21137
+540,Morgan,KY,21175
+541,Warren,KY,21227
+542,Caddo Parish,LA,22017
+543,Lafourche Parish,LA,22057
+544,Lincoln Parish,LA,22061
+545,Madison Parish,LA,22065
+546,Aroostook,ME,23003
+547,Oxford,ME,23017
+548,Washington,ME,23029
+549,Carroll,MD,24013
+550,Harford,MD,24025
+551,Washington,MD,24043
+552,Antrim,MI,26009
+553,Berrien,MI,26021
+554,Delta,MI,26041
+555,Ingham,MI,26065
+556,Kalamazoo,MI,26077
+557,Livingston,MI,26093
+558,Macomb,MI,26099
+559,Mecosta,MI,26107
+560,Midland,MI,26111
+561,Ottawa,MI,26139
+562,Becker,MN,27005
+563,Dakota,MN,27037
+564,Lake,MN,27075
+565,Nicollet,MN,27103
+566,Olmsted,MN,27109
+567,Sherburne,MN,27141
+568,Coahoma,MS,28027
+569,Harrison,MS,28047
+570,Lafayette,MS,28071
+571,Simpson,MS,28127
+572,Clay,MO,29047
+573,Cole,MO,29051
+574,Greene,MO,29077
+575,Knox,MO,29103
+576,Big Horn,MT,30003
+577,Park,MT,30067
+578,Ravalli,MT,30081
+579,Rosebud,MT,30087
+580,Valley,MT,30105
+581,Douglas,NV,32005
+582,Lyon,NV,32019
+583,Mineral,NV,32021
+584,Grant,NM,35017
+585,McKinley,NM,35031
+586,Broome,NY,36007
+587,Chemung,NY,36015
+588,Chenango,NY,36017
+589,Cortland,NY,36023
+590,Delaware,NY,36025
+591,Genesee,NY,36037
+592,Hamilton,NY,36041
+593,Livingston,NY,36051
+594,Montgomery,NY,36057
+595,Otsego,NY,36077
+596,Schoharie,NY,36095
+597,Wayne,NY,36117
+598,Avery,NC,37011
+599,Beaufort,NC,37013
+600,Burke,NC,37023
+601,Cabarrus,NC,37025
+602,Dare,NC,37055
+603,Davidson,NC,37057
+604,Franklin,NC,37069
+605,Granville,NC,37077
+606,Haywood,NC,37087
+607,Hoke,NC,37093
+608,Lee,NC,37105
+609,Lincoln,NC,37109
+610,Madison,NC,37115
+611,Pamlico,NC,37137
+612,Rockingham,NC,37157
+613,Stanly,NC,37167
+614,Swain,NC,37173
+615,Yancey,NC,37199
+616,Stark,ND,38089
+617,Columbiana,OH,39029
+618,Coshocton,OH,39031
+619,Erie,OH,39043
+620,Fayette,OH,39047
+621,Hancock,OH,39063
+622,Jackson,OH,39079
+623,Knox,OH,39083
+624,Madison,OH,39097
+625,Medina,OH,39103
+626,Miami,OH,39109
+627,Seneca,OH,39147
+628,Okmulgee,OK,40111
+629,Rogers,OK,40131
+630,Tillman,OK,40141
+631,Tulsa,OK,40143
+632,Benton,OR,41003
+633,Josephine,OR,41033
+634,Klamath,OR,41035
+635,Wasco,OR,41065
+636,Adams,PA,42001
+637,Clarion,PA,42031
+638,Columbia,PA,42037
+639,Fayette,PA,42051
+640,Lebanon,PA,42075
+641,Lycoming,PA,42081
+642,Montour,PA,42093
+643,Northumberland,PA,42097
+644,Somerset,PA,42111
+645,Washington,PA,42125
+646,Berkeley,SC,45015
+647,Chester,SC,45023
+648,Dorchester,SC,45035
+649,Greenwood,SC,45047
+650,Lancaster,SC,45057
+651,Oconee,SC,45073
+652,Spartanburg,SC,45083
+653,Meade,SD,46093
+654,Anderson,TN,47001
+655,Cheatham,TN,47021
+656,Franklin,TN,47051
+657,Grainger,TN,47057
+658,Greene,TN,47059
+659,Lincoln,TN,47103
+660,Loudon,TN,47105
+661,Montgomery,TN,47125
+662,Sullivan,TN,47163
+663,Unicoi,TN,47171
+664,Cameron,TX,48061
+665,Comal,TX,48091
+666,Comanche,TX,48093
+667,Gregg,TX,48183
+668,Henderson,TX,48213
+669,Kleberg,TX,48273
+670,Lubbock,TX,48303
+671,McLennan,TX,48309
+672,Midland,TX,48329
+673,Nueces,TX,48355
+674,Presidio,TX,48377
+675,Smith,TX,48423
+676,Washington,TX,48477
+677,Webb,TX,48479
+678,Davis,UT,49011
+679,Morgan,UT,49029
+680,Utah,UT,49049
+681,Weber,UT,49057
+682,Augusta,VA,51015
+683,Botetourt,VA,51023
+684,Caroline,VA,51033
+685,Culpeper,VA,51047
+686,Franklin,VA,51067
+687,Gloucester,VA,51073
+688,Goochland,VA,51075
+689,Halifax,VA,51083
+690,Hanover,VA,51085
+691,Isle of Wight,VA,51093
+692,King George,VA,51099
+693,Madison,VA,51113
+694,Nelson,VA,51125
+695,Pittsylvania,VA,51143
+696,Pulaski,VA,51155
+697,Rappahannock,VA,51157
+698,Shenandoah,VA,51171
+699,Surry,VA,51181
+700,Sussex,VA,51183
+701,Warren,VA,51187
+702,Washington,VA,51191
+703,Roanoke (city),VA,51770
+704,Cowlitz,WA,53015
+705,San Juan,WA,53055
+706,Spokane,WA,53063
+707,Stevens,WA,53065
+708,Barbour,WV,54001
+709,Boone,WV,54005
+710,Fayette,WV,54019
+711,Jackson,WV,54035
+712,Kanawha,WV,54039
+713,Logan,WV,54045
+714,Ohio,WV,54069
+715,Raleigh,WV,54081
+716,Wyoming,WV,54109
+717,Brown,WI,55009
+718,Calumet,WI,55015
+719,Jefferson,WI,55055
+720,Ozaukee,WI,55089
+721,Sheboygan,WI,55117
+722,Washburn,WI,55129
+723,Albany,WY,56001
+724,Johnson,WY,56019
+725,Laramie,WY,56021
+726,Sublette,WY,56035

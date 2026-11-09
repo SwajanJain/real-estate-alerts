@@ -44,6 +44,29 @@ node apps/real-estate/dist/src/cli/index.js monitor --vendor=realestateapi \
   `stats.json`, `manifest.json`. Every paid response is cached under `.restate/raw/`, so a re-run of the same
   county and window costs nothing.
 
+## County lists
+
+All lists live in `apps/real-estate/data/` with columns `fips`, `county`, `state`; the ranked ones add `rank`
+(by the client's number of prospects in the county). Only `fips` is sent to RealEstateAPI.
+
+| File | Counties | What it is |
+| --- | --- | --- |
+| `us-counties.csv` | 3,143 | Every county in the 50 states and DC (Census 2020) |
+| `all-clients-counties.csv` | 2,350 | Every county where any client has a prospect |
+| `<client>-all-counties.csv` | 572 to 1,805 | Every county where that client has a prospect |
+| `cmu-hotchkiss-counties.csv`, `cmu-hotchkiss-75pct-counties.csv`, `cmu-hotchkiss-hbs-rmu-counties.csv`, `marquette-new-counties.csv` | 47 to 275 | Earlier top-county lists, cut at a coverage target |
+
+- **Connecticut** uses its 8 legacy county codes, 09001 to 09015. RealEstateAPI returns no sales for the 2022
+  planning-region codes (09110 to 09190); a test fails if any list contains them.
+- **How the client lists were built**: each prospect's ZIP goes to the county holding most of that ZIP's land,
+  from the Census 2020 [ZCTA-to-county file](https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt);
+  ZIPs it lacks (mostly PO boxes) fall back to GeoNames by ZIP, then by city and state. 89% to 99.5% of each
+  client's prospects were placed; the rest are outside the US or have no ZIP or city. County names come from the
+  [Census 2020 county file](https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt).
+- **Cost**: the top-county lists (about 277 counties) come to about 255,000 sales a month, against the plan's
+  400,000 credits. A complete list costs more. Price any list first with `--dry-run=true`; count calls are free
+  on a paid plan.
+
 ## How a match is made
 
 1. **Filter**: client counties only (5-digit FIPS; Connecticut uses the old codes 09001 to 09015), arm's-length
