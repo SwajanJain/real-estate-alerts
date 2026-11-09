@@ -32,7 +32,7 @@ function isoDate(value: string | undefined): string | undefined {
 
 export async function monitorCli(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const vendor = (args.vendor ?? "attom").toLowerCase() as (typeof VENDORS)[number];
+  const vendor = (args.vendor ?? "realestateapi").toLowerCase() as (typeof VENDORS)[number];
   if (!VENDORS.includes(vendor)) {
     throw new Error(`Unknown --vendor=${vendor}. Use ${VENDORS.join(", ")}.`);
   }

@@ -5,14 +5,15 @@ recorded home sale in the client's counties from [RealEstateAPI](https://develop
 matches buyer and seller names against the client's prospect list, confirms with the address, scores each match,
 and writes a CSV of the confident ones.
 
-Status: a working prototype CLI. Name reading, matching and scoring are done and tested. The data fetch must move
-to the production workflow below before this runs unattended.
+Status: a working CLI. The data fetch uses the workflow verified with the vendor on 9 Nov 2026 (deed sellers for
+every sale at 1 credit, by recording date); name reading, matching and scoring are tested. Running unattended still
+needs the items under "What is left to build".
 
 ## Setup
 
 ```bash
 npm install
-npm test                 # builds packages/core, then runs the real-estate tests (87)
+npm test                 # builds packages/core, then runs the real-estate tests (96)
 npm run build
 ```
 
@@ -26,17 +27,19 @@ REALESTATEAPI_API_KEY=...
 
 ```bash
 # 1. Price a month first: count calls only, 0 credits on a paid plan.
-node apps/real-estate/dist/src/cli/index.js monitor --vendor=realestateapi \
+node apps/real-estate/dist/src/cli/index.js monitor \
   --prospects=path/to/prospects.csv --county-list=apps/real-estate/data/cmu-hotchkiss-counties.csv \
   --start=2026-10-01 --end=2026-10-31 --dry-run=true
 
 # 2. Run it, with the credit budget set just above the step 1 total (default 500).
-node apps/real-estate/dist/src/cli/index.js monitor --vendor=realestateapi \
+node apps/real-estate/dist/src/cli/index.js monitor \
   --prospects=path/to/prospects.csv --county-list=apps/real-estate/data/cmu-hotchkiss-counties.csv \
   --start=2026-10-01 --end=2026-10-31 --max-credits=30000
 ```
 
-- Always pass `--vendor=realestateapi`. The default is still a legacy vendor (see "What is left to build").
+- RealEstateAPI and its Bulk workflow are the defaults (`--vendor=realestateapi --fetch=bulk`). The window
+  (`--start`, `--end`) is matched against the date each deed was **recorded**; scan whole calendar months.
+- `--fetch=search` runs the old PropertySearch path (sellers from `priorOwner`, closing-date windows) for comparison.
 - Prospect CSV: a `name` column is required; `prospect_id`, `address`, `city`, `state`, `zip` and `aliases`
   (separated by `;`) are optional but improve matches. Prospect files hold personal data and are gitignored.
 - County CSV: `fips`, `county`, `state`.
@@ -69,8 +72,9 @@ All lists live in `apps/real-estate/data/` with columns `fips`, `county`, `state
 
 ## How a match is made
 
-1. **Filter**: client counties only (5-digit FIPS; Connecticut uses the old codes 09001 to 09015), arm's-length
-   sales only, at least one person on the deed, price unknown or above $100. A price of 0 means "not disclosed".
+1. **Filter**: client counties only (5-digit FIPS; Connecticut uses the old codes 09001 to 09015), deeds recorded
+   in the window, arm's-length sales only, at least one person on the deed, price unknown or above $100. A price
+   of 0 means "not disclosed".
 2. **Read names**: each deed name string becomes people. Couples share a surname ("John & Mary Smith"), trusts
    named after people give those people, companies and surname-only trusts give nobody.
    Match key: lower-case "first last".
@@ -84,10 +88,11 @@ All lists live in `apps/real-estate/data/` with columns `fips`, `county`, `state
 
 Code: `apps/real-estate/src`, starting at `core/TransactionMonitoringEngine.ts`.
 
-## Production workflow (verified 9 Nov 2026)
+## Data workflow (verified 9 Nov 2026, the default)
 
 The search row's seller field (`priorOwner`) is the assessor's previous owner, not the deed seller: it was right
-on only 77% of sales. The vendor's fix gives every sale the deed sellers at 1 credit:
+on only 77% of sales. The code therefore fetches every sale like this (`RealEstateApiBulkSource`), which gives
+every sale the deed's buyers, sellers and document number at 1 credit:
 
 | Step | Endpoint | Credits on Pro |
 | --- | --- | --- |
@@ -100,24 +105,28 @@ number, recording date and price; 98.9% had the buyer's mailing address. The das
 calls, so count and `ids_only` calls are free. Each record also carries `saleHistory`, every past deed for the
 property with buyers and sellers.
 
-Parser notes for the Bulk record shape:
-- `propertyInfo.address.street` is only the street name ("Chipmunk"); use `.address` ("2135 Chipmunk Ct") or `.label`.
-- Records come back in a different order from the IDs sent: join on `id`.
-- There is no `credits` field in the response; count records yourself.
-- `lastSale.saleDate` has a time part; cut dates to YYYY-MM-DD.
+The ID list for each county and window is saved (`ids.json` in the cache), so a resumed scan fetches the same
+1,000-ID chunks, and every response is cached, so a re-run costs nothing. `billableRecords` in a run's
+`stats.json` counts the records fetched (1 credit each).
+
+Bulk record shape, handled in `normalizeRealEstateApiDetail` and `RealEstateApiBulkSource`:
+- `propertyInfo.address.street` is only the street name ("Chipmunk"); the code reads `.address` ("2135 Chipmunk Ct").
+- Records come back in a different order from the IDs sent; the code joins them on `id`.
+- There is no `credits` field in the response; the code counts records.
+- `lastSale.saleDate` has a time part; dates are cut to YYYY-MM-DD.
 
 Coverage gaps found: Allegheny PA, St. Louis County MO, Monroe NY, York PA and Chesterfield VA had no September
 2026 recordings; Sheboygan WI and Le Sueur MN have no sales data at all.
 
 ## What is left to build
 
-1. Fetch with `ids_only` + `PropertyDetailBulk` for every sale; parse the Detail shape; match sellers on
-   `lastSale.sellerNames` only.
-2. Scan by recording date in whole calendar months, so late deeds are caught once.
-3. Alert ledger (`prospect ID + role + property ID + document number`) so a client never gets a sale twice.
-4. Monthly credit meter with a hard stop below the plan's 400,000 credits.
-5. Make RealEstateAPI the default vendor and remove the legacy BatchData and ATTOM code paths.
-6. Retries, scheduling, a database for matches and ledger, secrets management, county coverage monitoring.
+1. Alert ledger (`prospect ID + role + property ID + document number`) so a client never gets a sale twice.
+2. Monthly credit meter with a hard stop below the plan's 400,000 credits (each run already reports
+   `billableRecords`).
+3. Remove the legacy BatchData and ATTOM code paths (RealEstateAPI is already the default).
+4. Retries, scheduling, a database for matches and ledger, secrets management, county coverage monitoring.
+5. Use each record's `saleHistory` and `mortgageHistory` for an address-first check: a sale at a prospect's CRM
+   address where the prospect's surname is on an earlier deed or mortgage (spouse-only deeds, name changes).
 
 Never call the premium endpoints (Involuntary Lien, AVM, Skip Tracing): they are billed outside the plan. On a
 pay-as-you-go wallet, count and `ids_only` calls cost 1 credit each.

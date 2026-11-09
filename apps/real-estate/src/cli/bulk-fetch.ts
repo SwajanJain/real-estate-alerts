@@ -31,7 +31,7 @@ class AttomFetcherAdapter implements Fetcher {
 
 export async function bulkFetchCli(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const vendor = (args.vendor ?? "attom").toLowerCase() as (typeof VENDORS)[number];
+  const vendor = (args.vendor ?? "realestateapi").toLowerCase() as (typeof VENDORS)[number];
   if (!VENDORS.includes(vendor)) {
     throw new Error(`Unknown --vendor=${vendor}. Use ${VENDORS.join(", ")}.`);
   }
@@ -45,9 +45,9 @@ export async function bulkFetchCli(argv: string[]): Promise<void> {
   } else {
     throw new Error(
       "Usage:\n" +
-      "  restate bulk-fetch --counties=11001,36061 --start=YYYY/MM/DD --end=YYYY/MM/DD [--delay=2000]\n" +
+      "  restate bulk-fetch (--counties=55133 | --county-list=/path/counties.csv) --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500] [--fetch=bulk|search]\n" +
       "  restate bulk-fetch --vendor=batchdata --county-list=/path/counties.csv --start=YYYY-MM-DD --end=YYYY-MM-DD\n" +
-      "  restate bulk-fetch --vendor=realestateapi (--counties=55133 | --county-list=/path/counties.csv) --start=YYYY-MM-DD --end=YYYY-MM-DD [--max-credits=500]",
+      "  restate bulk-fetch --vendor=attom --counties=11001,36061 --start=YYYY/MM/DD --end=YYYY/MM/DD [--delay=2000]",
     );
   }
   if (!args.start || !args.end) {
