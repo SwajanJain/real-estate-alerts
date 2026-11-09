@@ -342,3 +342,48 @@ test("engine looks up deed detail only for sales at a prospect address, and cach
   assert.equal(detailIds.length, 1);
   assert.equal(searchCalls.length, 1);
 });
+
+// Records the URL and body of every call; replies with the next canned response.
+function scriptedFetch(replies: unknown[], calls: Array<{ url: string; body: Record<string, unknown> }>): typeof fetch {
+  return (async (url: string, init?: RequestInit) => {
+    calls.push({ url: String(url), body: JSON.parse(String(init?.body)) as Record<string, unknown> });
+    const reply = replies[Math.min(calls.length - 1, replies.length - 1)];
+    return new Response(JSON.stringify(reply), { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as unknown as typeof fetch;
+}
+
+test("RealEstateApiClient lists IDs by recording date with ids_only, paging past a full page", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const client = new RealEstateApiClient({
+    apiKey: "test",
+    dateField: "recording",
+    fetchImpl: scriptedFetch([{ resultCount: 3, data: [11, 12] }, { resultCount: 3, data: [13] }], calls),
+  });
+  const ids = await client.fetchCountyIds({ fips: "55133", startDate: "2026-05-01", endDate: "2026-05-31" });
+  assert.deepEqual(ids, ["11", "12", "13"]);
+  assert.match(calls[0].url, /\/PropertySearch$/);
+  assert.deepEqual(calls[0].body, {
+    fips: "55133", recording_date_min: "2026-05-01", recording_date_max: "2026-05-31",
+    last_sale_arms_length: true, ids_only: true, size: 10000,
+  });
+  assert.equal(calls[1].body.resultIndex, 2);
+});
+
+test("RealEstateApiClient reads an empty ids_only window (200 with inner 404) as no IDs", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const client = new RealEstateApiClient({ apiKey: "test", dateField: "recording", fetchImpl: scriptedFetch([{ statusCode: 404, data: [] }], calls) });
+  assert.deepEqual(await client.fetchCountyIds({ fips: "42003", startDate: "2026-09-01", endDate: "2026-09-30" }), []);
+  assert.equal(calls.length, 1);
+});
+
+test("RealEstateApiClient fetches PropertyDetailBulk with numeric IDs and refuses more than 1,000", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const client = new RealEstateApiClient({ apiKey: "test", fetchImpl: scriptedFetch([{ statusCode: 200, data: [{ id: 2 }, { id: 1 }] }], calls) });
+  const records = await client.fetchDetailBulk(["1", "2"]);
+  assert.equal(records.length, 2);
+  assert.match(calls[0].url, /\/PropertyDetailBulk$/);
+  assert.deepEqual(calls[0].body, { ids: [1, 2] });
+  await assert.rejects(client.fetchDetailBulk(Array.from({ length: 1001 }, (_, i) => String(i + 1))), /1,000/);
+  assert.deepEqual(await client.fetchDetailBulk([]), []);
+  assert.equal(calls.length, 1);
+});
