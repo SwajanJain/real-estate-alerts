@@ -142,7 +142,7 @@ export function writeSummary(
   lines.push("Data notes:");
   lines.push("  - Buyer matches confirmed via owner mailing address corroboration");
   lines.push("  - Seller matches use the sold property address as the prior residence corroboration");
-  lines.push(`  - ${stats.apiCalls} live API calls made (all data from cache)`);
+  lines.push(`  - ${stats.apiCalls} live API calls made${stats.apiCalls === 0 ? " (all data from cache)" : ""}`);
   lines.push(`  - ${stats.ownersParsed.toLocaleString("en-US")} owner/seller names parsed`);
   lines.push("");
 

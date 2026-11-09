@@ -15,7 +15,7 @@ function ensureDir(filePath: string): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
 }
 
-export type CacheVendor = "attom" | "batchdata";
+export type CacheVendor = "attom" | "batchdata" | "realestateapi";
 
 export class CacheStore {
   constructor(
@@ -64,6 +64,18 @@ export class CacheStore {
     }
     this.stateStore.writeJson(this.scanManifestPath(fips, startDate, endDate), existing);
     return existing;
+  }
+
+  detailPath(propertyId: string): string {
+    return path.join(this.stateStore.paths.raw, this.vendor, "detail", `${propertyId}.json`);
+  }
+
+  readDetail<T>(propertyId: string): T | null {
+    return this.stateStore.readJson<T>(this.detailPath(propertyId));
+  }
+
+  writeDetail(propertyId: string, value: unknown): void {
+    this.stateStore.writeJson(this.detailPath(propertyId), value);
   }
 
   priorStatePath(propertyId: string): string {
