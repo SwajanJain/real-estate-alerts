@@ -14,6 +14,7 @@ import { assertWithinCreditBudget, estimateUncachedRecords } from "../src/lib/cr
 import {
   applyRealEstateApiSaleDetail,
   normalizeRealEstateApiProperty,
+  parseRealEstateApiParties,
   parseRealEstateApiParty,
   splitRealEstateApiParties,
 } from "../src/parsers/source-normalizers";
@@ -243,6 +244,31 @@ test("parseRealEstateApiParty extracts named grantors from first-name-first trus
   assert.deepEqual(names("Marion C Waterfall Living Trust"), ["marion waterfall"]);
   assert.deepEqual(names("Smith Family Trust"), []);
   assert.ok(parseRealEstateApiParty("Marion C Waterfall Living Trust").every((o) => o.role === "trustee"));
+});
+
+test("parseRealEstateApiParties keeps the strongest reading of a repeated name", () => {
+  const read = (raw: string) => parseRealEstateApiParties(raw).map((o) => [o.normalized, o.extractedFrom, o.role ?? ""]);
+  // Live Waukesha deed (May 2026): the trust gives a borrowed-surname "Robert Waite";
+  // the full "Robert J Waite Jr" that follows must win.
+  const waite = [["robert waite", "direct", ""], ["susan waite", "direct", "trustee"]];
+  assert.deepEqual(read("Robert And Susan Waite Revocable Trust, Robert J Waite Jr"), waite);
+  assert.deepEqual(read("Robert J Waite Jr, Robert And Susan Waite Revocable Trust"), waite); // order of appearance does not matter
+  assert.equal(parseRealEstateApiParties("Robert And Susan Waite Revocable Trust, Robert J Waite Jr")[0].raw, "Robert J Waite Jr");
+  // Same points: the first reading is kept (unchanged behaviour).
+  assert.deepEqual(read("Marion C Waterfall Living Trust, Marion C Waterfall"), [["marion waterfall", "direct", "trustee"]]);
+  // Live deed: father and son share the key "robert uecker"; the first reading is kept.
+  assert.equal(parseRealEstateApiParties("Robert G Uecker Sr Trust, Robert G Uecker Jr")[0].raw, "Robert G Uecker Sr");
+  // Conflicting middle initials are different people: the stronger later one does not replace the first.
+  const smith = parseRealEstateApiParties("John A & Mary Smith Trust, John B Smith");
+  assert.deepEqual(smith.map((o) => [o.raw, o.extractedFrom]), [["John A Smith", "co_owner"], ["Mary Smith", "direct"]]);
+});
+
+test("applyRealEstateApiSaleDetail keeps the stronger reading when deed and search name the same person", () => {
+  const property = normalizeRealEstateApiProperty(searchRow({ priorOwner: "Robert J Waite Jr, Susan H Waite" }));
+  const enriched = applyRealEstateApiSaleDetail(property, {
+    data: { lastSale: { saleDate: "2026-05-08", sellerNames: "Robert And Susan Waite Revocable Trust" } },
+  });
+  assert.deepEqual(enriched.parsedSellers.map((o) => [o.normalized, o.extractedFrom]), [["robert waite", "direct"], ["susan waite", "direct"]]);
 });
 
 test("applyRealEstateApiSaleDetail swaps in deed sellers only for the same sale", () => {

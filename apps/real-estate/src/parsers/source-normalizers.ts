@@ -1,6 +1,7 @@
 import { parsePersonName } from "@pm/core";
 
 import type { ParsedOwner, PropertyRecord } from "../core/types";
+import { variantWeight } from "../lib/confidence-scorer";
 import { classifyOwnerEntity } from "../lib/owner-entity-classifier";
 import { parseOwnerName } from "./owner-name-parser";
 import { normalizeAddress } from "./address-normalizer";
@@ -340,17 +341,48 @@ export function parseRealEstateApiParty(raw: string): ParsedOwner[] {
   return personFromParts(trimmed, "direct");
 }
 
-export function parseRealEstateApiParties(raw: string): ParsedOwner[] {
-  const seen = new Set<string>();
+// The name points the scorer will give this reading (the engine maps
+// extractedFrom to a variant type the same way).
+function ownerPoints(owner: ParsedOwner): number {
+  return variantWeight(
+    owner.extractedFrom === "trust_name" ? "trust_extracted" : owner.extractedFrom === "co_owner" ? "co_owner" : "exact",
+  );
+}
+
+// Two readings with the same normalized name are the same person unless they
+// disagree on a suffix (Sr vs Jr) or a middle initial (John A vs John B).
+function sameBearer(a: ParsedOwner, b: ParsedOwner): boolean {
+  const initial = (owner: ParsedOwner) => (owner.middleName ?? "").charAt(0);
+  const suffixOk = !a.suffix || !b.suffix || a.suffix === b.suffix;
+  const initialOk = !initial(a) || !initial(b) || initial(a) === initial(b);
+  return suffixOk && initialOk;
+}
+
+// One entry per normalized name, in first-seen order. A later reading
+// replaces the earlier one only when it is clearly the same person AND scores
+// strictly more, so a weak copy seen first cannot hide a full one:
+// "Robert And Susan Waite Revocable Trust, Robert J Waite Jr" keeps
+// "Robert J Waite Jr" (50 points), not the trust's borrowed-surname
+// "Robert Waite" (30). In every other case the first reading is kept.
+function mergeOwners(...lists: ParsedOwner[][]): ParsedOwner[] {
   const owners: ParsedOwner[] = [];
-  for (const party of splitRealEstateApiParties(raw)) {
-    for (const owner of parseRealEstateApiParty(party)) {
-      if (seen.has(owner.normalized)) continue;
-      seen.add(owner.normalized);
-      owners.push(owner);
+  const indexByName = new Map<string, number>();
+  for (const list of lists) {
+    for (const owner of list) {
+      const at = indexByName.get(owner.normalized);
+      if (at === undefined) {
+        indexByName.set(owner.normalized, owners.length);
+        owners.push(owner);
+      } else if (ownerPoints(owner) > ownerPoints(owners[at]) && sameBearer(owner, owners[at])) {
+        owners[at] = owner;
+      }
     }
   }
   return owners;
+}
+
+export function parseRealEstateApiParties(raw: string): ParsedOwner[] {
+  return mergeOwners(...splitRealEstateApiParties(raw).map(parseRealEstateApiParty));
 }
 
 // Current-owner fields, used only when the deed's buyer string is missing.
@@ -435,9 +467,9 @@ export function normalizeRealEstateApiProperty(payload: unknown): PropertyRecord
 // of both lists, because each side has errors the other lacks (a deed typo like
 // "Rurie" for "Ruric", or a priorOwner naming heirs instead of grantors).
 // Only applied when the detail's sale is the same sale as the search row's.
+// A person on both lists keeps the stronger reading (see mergeOwners).
 function unionOwners(a: ParsedOwner[], b: ParsedOwner[]): ParsedOwner[] {
-  const seen = new Set(a.map((owner) => owner.normalized));
-  return [...a, ...b.filter((owner) => !seen.has(owner.normalized))];
+  return mergeOwners(a, b);
 }
 
 export function applyRealEstateApiSaleDetail(property: PropertyRecord, detailPayload: unknown): PropertyRecord {
